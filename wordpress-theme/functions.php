@@ -225,3 +225,9 @@ function clarity_ghl_sync_handler() {
  * Include Theme Customizer
  */
 require get_template_directory() . '/customizer.php';
+
+/**
+ * Include AWS S3 Integration
+ */
+require get_template_directory() . '/includes/class-aws-s3-integration.php';
+require get_template_directory() . '/includes/aws-s3-functions.php';
