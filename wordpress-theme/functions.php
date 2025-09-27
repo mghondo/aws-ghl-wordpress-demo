@@ -231,3 +231,8 @@ require get_template_directory() . '/customizer.php';
  */
 require get_template_directory() . '/includes/class-aws-s3-integration.php';
 require get_template_directory() . '/includes/aws-s3-functions.php';
+
+/**
+ * Include GoHighLevel Webhook Integration
+ */
+require get_template_directory() . '/includes/class-ghl-webhook.php';

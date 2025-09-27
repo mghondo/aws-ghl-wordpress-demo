@@ -1,0 +1,16 @@
+{
+    "event": "opportunity_created",
+    "timestamp": 1727446800,
+    "locationId": "test_location_123",
+    "version": "1.0",
+    "opportunity": {
+        "id": "opp_xyz789abc",
+        "contactId": "contact_abc123",
+        "name": "Website Development Project",
+        "value": 5000,
+        "currency": "USD",
+        "stage": "qualification",
+        "source": "website_form",
+        "dateCreated": "2025-09-27T13:30:00+00:00"
+    }
+}
