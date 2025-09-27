@@ -1,0 +1,59 @@
+{
+  "bucketName": "clarity-aws-ghl-demo-storage",
+  "region": "us-east-1",
+  "bucketConfiguration": {
+    "versioning": {
+      "Status": "Enabled"
+    },
+    "serverSideEncryption": {
+      "Rules": [
+        {
+          "ApplyServerSideEncryptionByDefault": {
+            "SSEAlgorithm": "AES256"
+          }
+        }
+      ]
+    },
+    "publicAccessBlock": {
+      "BlockPublicAcls": true,
+      "IgnorePublicAcls": true,
+      "BlockPublicPolicy": true,
+      "RestrictPublicBuckets": true
+    },
+    "cors": [
+      {
+        "AllowedHeaders": ["*"],
+        "AllowedMethods": ["GET", "PUT", "POST", "DELETE"],
+        "AllowedOrigins": ["*"],
+        "ExposeHeaders": ["ETag"],
+        "MaxAgeSeconds": 3000
+      }
+    ]
+  },
+  "iamPolicy": {
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Sid": "ClarityWordPressS3Access",
+        "Effect": "Allow",
+        "Action": [
+          "s3:GetObject",
+          "s3:PutObject",
+          "s3:DeleteObject",
+          "s3:ListBucket"
+        ],
+        "Resource": [
+          "arn:aws:s3:::clarity-aws-ghl-demo-storage",
+          "arn:aws:s3:::clarity-aws-ghl-demo-storage/*"
+        ]
+      }
+    ]
+  },
+  "bucketFolders": [
+    "uploads/",
+    "backups/",
+    "ghl-webhooks/",
+    "temp/",
+    "logs/"
+  ]
+}
