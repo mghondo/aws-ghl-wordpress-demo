@@ -29,6 +29,8 @@ define('CLARITY_AWS_GHL_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('CLARITY_AWS_GHL_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('CLARITY_AWS_GHL_PLUGIN_FILE', __FILE__);
 define('CLARITY_AWS_GHL_PLUGIN_BASENAME', plugin_basename(__FILE__));
+define('CLARITY_AWS_GHL_PATH', CLARITY_AWS_GHL_PLUGIN_DIR);
+define('CLARITY_AWS_GHL_URL', CLARITY_AWS_GHL_PLUGIN_URL);
 
 /**
  * Main Plugin Class
@@ -101,10 +103,8 @@ class Clarity_AWS_GHL_Integration {
         require_once CLARITY_AWS_GHL_PLUGIN_DIR . 'includes/class-integrations.php';
         
         // Integration classes (adapted from theme)
-        require_once CLARITY_AWS_GHL_PLUGIN_DIR . 'includes/aws/class-s3-integration.php';
-        require_once CLARITY_AWS_GHL_PLUGIN_DIR . 'includes/aws/s3-functions.php';
-        require_once CLARITY_AWS_GHL_PLUGIN_DIR . 'includes/ghl/class-webhook.php';
-        require_once CLARITY_AWS_GHL_PLUGIN_DIR . 'includes/ghl/webhook-functions.php';
+        require_once CLARITY_AWS_GHL_PLUGIN_DIR . 'includes/class-s3-integration.php';
+        require_once CLARITY_AWS_GHL_PLUGIN_DIR . 'includes/class-ghl-webhook.php';
         
         // Admin includes
         require_once CLARITY_AWS_GHL_PLUGIN_DIR . 'admin/class-settings.php';
