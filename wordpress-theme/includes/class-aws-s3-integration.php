@@ -11,7 +11,7 @@ if (!defined('ABSPATH')) {
     exit; // Exit if accessed directly
 }
 
-class Clarity_AWS_S3_Integration {
+class Clarity_Theme_AWS_S3_Integration {
     
     private $bucket_name;
     private $region;
@@ -368,4 +368,4 @@ class Clarity_AWS_S3_Integration {
 }
 
 // Initialize the S3 integration
-new Clarity_AWS_S3_Integration();
+new Clarity_Theme_AWS_S3_Integration();
