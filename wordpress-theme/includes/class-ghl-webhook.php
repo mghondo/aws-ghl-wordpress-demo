@@ -11,7 +11,7 @@ if (!defined('ABSPATH')) {
     exit; // Exit if accessed directly
 }
 
-class Clarity_GHL_Webhook {
+class Clarity_Theme_GHL_Webhook {
     
     private $webhook_secret;
     private $s3_integration;
@@ -21,7 +21,7 @@ class Clarity_GHL_Webhook {
      */
     public function __construct() {
         $this->webhook_secret = get_option('clarity_ghl_webhook_secret', '');
-        $this->s3_integration = new Clarity_AWS_S3_Integration();
+        $this->s3_integration = new Clarity_Theme_AWS_S3_Integration();
         
         // Register REST API endpoint
         add_action('rest_api_init', array($this, 'register_webhook_endpoint'));
@@ -345,4 +345,4 @@ class Clarity_GHL_Webhook {
 }
 
 // Initialize the GHL webhook handler
-new Clarity_GHL_Webhook();
+new Clarity_Theme_GHL_Webhook();
