@@ -119,8 +119,23 @@ class Clarity_AWS_GHL_Integration {
         $this->database = new Clarity_AWS_GHL_Database();
         $this->admin = new Clarity_AWS_GHL_Admin();
         $this->post_types = new Clarity_AWS_GHL_Post_Types();
-        $this->s3_integration = new Clarity_AWS_GHL_S3_Integration();
-        $this->ghl_webhook = new Clarity_AWS_GHL_Webhook();
+        
+        // Initialize integrations with configuration
+        $this->s3_integration = new Clarity_AWS_S3_Integration(array(
+            'bucket_name' => get_option('clarity_s3_bucket_name', ''),
+            'region' => get_option('clarity_s3_region', 'us-east-1'),
+            'access_key' => get_option('clarity_s3_access_key', ''),
+            'secret_key' => get_option('clarity_s3_secret_key', ''),
+            'delete_local' => get_option('clarity_s3_delete_local', false)
+        ));
+        
+        $this->ghl_webhook = new Clarity_GHL_Webhook(array(
+            'webhook_secret' => get_option('clarity_ghl_webhook_secret', ''),
+            'create_contacts' => get_option('clarity_ghl_create_contacts', true),
+            'notification_email' => get_option('clarity_ghl_notification_email', ''),
+            's3_integration' => $this->s3_integration,
+            'database' => $this->database
+        ));
     }
     
     /**
@@ -438,16 +453,36 @@ class Clarity_AWS_GHL_Integration {
     }
     
     /**
+     * Get S3 integration instance
+     */
+    public function get_s3_integration() {
+        return $this->s3_integration;
+    }
+    
+    /**
+     * Get GHL webhook instance
+     */
+    public function get_ghl_webhook() {
+        return $this->ghl_webhook;
+    }
+    
+    /**
      * Get plugin info
      */
     public function get_plugin_info() {
+        $s3_configured = $this->s3_integration ? $this->s3_integration->is_configured() : false;
+        $webhook_url = $this->ghl_webhook ? $this->ghl_webhook->get_webhook_url() : rest_url('clarity-ghl/v1/webhook');
+        
         return array(
             'version' => CLARITY_AWS_GHL_VERSION,
             'plugin_dir' => CLARITY_AWS_GHL_PLUGIN_DIR,
             'plugin_url' => CLARITY_AWS_GHL_PLUGIN_URL,
             'is_configured' => $this->is_configured(),
-            's3_status' => $this->s3_integration->get_status(),
-            'webhook_url' => $this->ghl_webhook->get_webhook_url()
+            's3_status' => array(
+                'connected' => $s3_configured,
+                'bucket' => get_option('clarity_s3_bucket_name', '')
+            ),
+            'webhook_url' => $webhook_url
         );
     }
 }
