@@ -17,7 +17,8 @@ class Clarity_AWS_GHL_Admin {
      * Constructor
      */
     public function __construct() {
-        add_action('admin_menu', array($this, 'add_admin_menu'));
+        // Admin menu is now handled by main plugin file
+        // add_action('admin_menu', array($this, 'add_admin_menu'));
         add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_scripts'));
         add_action('wp_ajax_clarity_test_s3_connection', array($this, 'ajax_test_s3_connection'));
         add_action('wp_ajax_clarity_test_webhook', array($this, 'ajax_test_webhook'));
