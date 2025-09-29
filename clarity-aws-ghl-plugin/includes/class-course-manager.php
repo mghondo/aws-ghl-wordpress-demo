@@ -91,13 +91,17 @@ class Clarity_AWS_GHL_Course_Manager {
         
         $args = wp_parse_args($args, $defaults);
         
-        $query = "SELECT * FROM {$this->tables['courses']} WHERE 1=1";
+        $query = "SELECT c.*, 
+                         COALESCE(COUNT(l.id), 0) as total_lessons
+                  FROM {$this->tables['courses']} c
+                  LEFT JOIN {$this->tables['lessons']} l ON c.id = l.course_id
+                  WHERE 1=1";
         
         if ($args['status']) {
-            $query .= $wpdb->prepare(" AND course_status = %s", $args['status']);
+            $query .= $wpdb->prepare(" AND c.course_status = %s", $args['status']);
         }
         
-        $query .= " ORDER BY {$args['orderby']} {$args['order']}";
+        $query .= " GROUP BY c.id ORDER BY c.{$args['orderby']} {$args['order']}";
         
         return $wpdb->get_results($query);
     }
