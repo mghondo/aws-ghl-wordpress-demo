@@ -143,7 +143,7 @@ class Clarity_AWS_GHL_Courses_Admin {
      * Render course management page
      */
     public function render_courses_page() {
-        $courses = $this->course_manager->get_all_courses();
+        $courses = $this->course_manager->get_all_courses(array('status' => ''));
         ?>
         <div class="wrap">
             <h1><?php _e('Course Management', 'clarity-aws-ghl'); ?></h1>
@@ -320,6 +320,13 @@ class Clarity_AWS_GHL_Courses_Admin {
                                 <tr>
                                     <th scope="row"><?php _e('Description', 'clarity-aws-ghl'); ?></th>
                                     <td><textarea name="course_description" rows="4" class="large-text"></textarea></td>
+                                </tr>
+                                <tr>
+                                    <th scope="row"><?php _e('Course Price', 'clarity-aws-ghl'); ?></th>
+                                    <td>
+                                        <input type="number" name="course_price" step="0.01" min="0" class="regular-text" placeholder="0.00">
+                                        <p class="description"><?php _e('Enter price in dollars (e.g., 497.00 for $497)', 'clarity-aws-ghl'); ?></p>
+                                    </td>
                                 </tr>
                                 <tr>
                                     <th scope="row"><?php _e('Course Status', 'clarity-aws-ghl'); ?></th>
@@ -1189,6 +1196,7 @@ class Clarity_AWS_GHL_Courses_Admin {
         $course_id = intval($_POST['course_id']);
         $course_title = sanitize_text_field($_POST['course_title']);
         $course_description = sanitize_textarea_field($_POST['course_description']);
+        $course_price = floatval($_POST['course_price']);
         $course_status = sanitize_text_field($_POST['course_status']);
         
         if (empty($course_title)) {
@@ -1202,6 +1210,7 @@ class Clarity_AWS_GHL_Courses_Admin {
         $course_data = array(
             'course_title' => $course_title,
             'course_description' => $course_description,
+            'course_price' => $course_price,
             'course_status' => $course_status
         );
         

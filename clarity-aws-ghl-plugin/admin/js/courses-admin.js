@@ -957,6 +957,7 @@
                     $('#edit-course-id').val(course.id);
                     $('#edit-course-form [name="course_title"]').val(course.course_title);
                     $('#edit-course-form [name="course_description"]').val(course.course_description);
+                    $('#edit-course-form [name="course_price"]').val(course.course_price);
                     $('#edit-course-form [name="course_status"]').val(course.course_status);
                     $('#edit-course-modal').show();
                 } else {
@@ -987,6 +988,7 @@
             course_id: $('#edit-course-id').val(),
             course_title: $form.find('[name="course_title"]').val(),
             course_description: $form.find('[name="course_description"]').val(),
+            course_price: $form.find('[name="course_price"]').val(),
             course_status: $form.find('[name="course_status"]').val()
         };
         
