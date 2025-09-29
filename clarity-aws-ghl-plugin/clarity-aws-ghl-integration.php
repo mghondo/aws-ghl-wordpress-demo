@@ -3,7 +3,7 @@
  * Plugin Name: Clarity AWS GoHighLevel Integration
  * Plugin URI: https://github.com/mghondo/aws-ghl-wordpress-demo
  * Description: Complete integration between WordPress, AWS S3, and GoHighLevel CRM. Handles webhook processing, file storage, and lead management.
- * Version: 1.0.0
+ * Version: 1.0.1
  * Author: Morgan Hondros
  * Author URI: https://github.com/mghondo
  * License: GPL v2 or later
@@ -24,7 +24,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('CLARITY_AWS_GHL_VERSION', '1.0.0');
+define('CLARITY_AWS_GHL_VERSION', '1.0.1');
 define('CLARITY_AWS_GHL_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('CLARITY_AWS_GHL_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('CLARITY_AWS_GHL_PLUGIN_FILE', __FILE__);
@@ -50,6 +50,11 @@ class Clarity_AWS_GHL_Integration {
     public $ghl_webhook;
     public $database;
     public $post_types;
+    public $course_manager;
+    public $lesson_handler;
+    public $courses_admin;
+    public $progress_tracker;
+    public $frontend_templates;
     
     /**
      * Get single instance
@@ -106,10 +111,18 @@ class Clarity_AWS_GHL_Integration {
         require_once CLARITY_AWS_GHL_PLUGIN_DIR . 'includes/class-s3-integration.php';
         require_once CLARITY_AWS_GHL_PLUGIN_DIR . 'includes/class-ghl-webhook.php';
         
+        // Course system includes
+        require_once CLARITY_AWS_GHL_PLUGIN_DIR . 'includes/class-database-courses.php';
+        require_once CLARITY_AWS_GHL_PLUGIN_DIR . 'includes/class-course-manager.php';
+        require_once CLARITY_AWS_GHL_PLUGIN_DIR . 'includes/class-lesson-handler.php';
+        require_once CLARITY_AWS_GHL_PLUGIN_DIR . 'includes/class-progress-tracker.php';
+        require_once CLARITY_AWS_GHL_PLUGIN_DIR . 'includes/class-frontend-templates.php';
+        
         // Admin includes
         require_once CLARITY_AWS_GHL_PLUGIN_DIR . 'admin/class-settings.php';
         require_once CLARITY_AWS_GHL_PLUGIN_DIR . 'admin/class-dashboard.php';
         require_once CLARITY_AWS_GHL_PLUGIN_DIR . 'admin/class-logs.php';
+        require_once CLARITY_AWS_GHL_PLUGIN_DIR . 'admin/class-courses-admin.php';
     }
     
     /**
@@ -119,6 +132,13 @@ class Clarity_AWS_GHL_Integration {
         $this->database = new Clarity_AWS_GHL_Database();
         $this->admin = new Clarity_AWS_GHL_Admin();
         $this->post_types = new Clarity_AWS_GHL_Post_Types();
+        
+        // Initialize course system components
+        $this->course_manager = new Clarity_AWS_GHL_Course_Manager();
+        $this->lesson_handler = new Clarity_AWS_GHL_Lesson_Handler();
+        $this->courses_admin = new Clarity_AWS_GHL_Courses_Admin();
+        $this->progress_tracker = new Clarity_AWS_GHL_Progress_Tracker();
+        $this->frontend_templates = new Clarity_AWS_GHL_Frontend_Templates();
         
         // Initialize integrations with configuration
         $this->s3_integration = new Clarity_AWS_S3_Integration(array(
@@ -379,6 +399,10 @@ class Clarity_AWS_GHL_Integration {
         // Create database tables
         $this->database->create_tables();
         
+        // Create course database tables
+        $db_courses = new Clarity_AWS_GHL_Database_Courses();
+        $db_courses->create_course_tables();
+        
         // Set default options
         $this->set_default_options();
         
@@ -408,6 +432,10 @@ class Clarity_AWS_GHL_Integration {
         $database = new Clarity_AWS_GHL_Database();
         $database->drop_tables();
         
+        // Remove course database tables
+        $db_courses = new Clarity_AWS_GHL_Database_Courses();
+        $db_courses->drop_course_tables();
+        
         // Remove options
         $options = array(
             'clarity_s3_bucket_name',
@@ -421,7 +449,8 @@ class Clarity_AWS_GHL_Integration {
             'clarity_ghl_notification_email',
             'clarity_debug_mode',
             'clarity_log_retention_days',
-            'clarity_ghl_webhook_logs'
+            'clarity_ghl_webhook_logs',
+            'clarity_aws_ghl_course_db_version'
         );
         
         foreach ($options as $option) {
