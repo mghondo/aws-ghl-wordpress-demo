@@ -57,6 +57,12 @@ class Clarity_AWS_GHL_Course_Manager {
         add_action('wp_ajax_admin_reset_progress', array($this, 'ajax_admin_reset_progress'));
         add_action('wp_ajax_admin_bulk_complete', array($this, 'ajax_admin_bulk_complete'));
         
+        // New course page admin hooks
+        add_action('wp_ajax_admin_complete_lesson', array($this, 'ajax_admin_complete_lesson'));
+        add_action('wp_ajax_admin_uncomplete_lesson', array($this, 'ajax_admin_uncomplete_lesson'));
+        add_action('wp_ajax_admin_toggle_enrollment', array($this, 'ajax_admin_toggle_enrollment'));
+        add_action('wp_ajax_admin_complete_all_lessons', array($this, 'ajax_admin_complete_all_lessons'));
+        
         // Certificate generation
         add_action('clarity_course_completed', array($this, 'generate_certificate'), 10, 2);
     }
@@ -551,5 +557,206 @@ class Clarity_AWS_GHL_Course_Manager {
         }
         
         return null;
+    }
+    
+    /**
+     * AJAX: Admin complete lesson
+     */
+    public function ajax_admin_complete_lesson() {
+        check_ajax_referer('admin_course_actions', 'nonce');
+        
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Insufficient permissions');
+        }
+        
+        $user_id = intval($_POST['user_id']);
+        $lesson_id = intval($_POST['lesson_id']);
+        $course_id = intval($_POST['course_id']);
+        
+        if (!$user_id || !$lesson_id) {
+            wp_send_json_error('Missing required parameters');
+        }
+        
+        $result = $this->mark_lesson_complete($user_id, $lesson_id);
+        
+        if ($result) {
+            wp_send_json_success(array('message' => 'Lesson marked complete'));
+        } else {
+            wp_send_json_error('Failed to mark lesson complete');
+        }
+    }
+    
+    /**
+     * AJAX: Admin mark lesson incomplete
+     */
+    public function ajax_admin_uncomplete_lesson() {
+        check_ajax_referer('admin_course_actions', 'nonce');
+        
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Insufficient permissions');
+        }
+        
+        $user_id = intval($_POST['user_id']);
+        $lesson_id = intval($_POST['lesson_id']);
+        $course_id = intval($_POST['course_id']);
+        
+        if (!$user_id || !$lesson_id) {
+            wp_send_json_error('Missing required parameters');
+        }
+        
+        global $wpdb;
+        
+        // Get lesson for validation and cascade logic
+        $lesson = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM {$this->tables['lessons']} WHERE id = %d",
+            $lesson_id
+        ));
+        
+        if (!$lesson) {
+            wp_send_json_error('Lesson not found');
+        }
+        
+        // Mark this lesson incomplete
+        $wpdb->delete($this->tables['user_progress'], array(
+            'user_id' => $user_id,
+            'lesson_id' => $lesson_id
+        ));
+        
+        // Cascade: mark all subsequent lessons incomplete
+        $subsequent_lessons = $wpdb->get_results($wpdb->prepare(
+            "SELECT id FROM {$this->tables['lessons']} 
+            WHERE course_id = %d AND lesson_order > %d",
+            $lesson->course_id, $lesson->lesson_order
+        ));
+        
+        foreach ($subsequent_lessons as $sub_lesson) {
+            $wpdb->delete($this->tables['user_progress'], array(
+                'user_id' => $user_id,
+                'lesson_id' => $sub_lesson->id
+            ));
+        }
+        
+        // Update enrollment progress
+        $this->update_enrollment_progress($user_id, $course_id);
+        
+        wp_send_json_success(array('message' => 'Lesson marked incomplete'));
+    }
+    
+    /**
+     * AJAX: Admin toggle enrollment
+     */
+    public function ajax_admin_toggle_enrollment() {
+        check_ajax_referer('admin_course_actions', 'nonce');
+        
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Insufficient permissions');
+        }
+        
+        $user_id = intval($_POST['user_id']);
+        $course_id = intval($_POST['course_id']);
+        $enroll = filter_var($_POST['enroll'], FILTER_VALIDATE_BOOLEAN);
+        
+        if (!$user_id || !$course_id) {
+            wp_send_json_error('Missing required parameters');
+        }
+        
+        global $wpdb;
+        
+        if ($enroll) {
+            // Enroll user
+            $result = $this->enroll_user($user_id, $course_id);
+            if ($result) {
+                wp_send_json_success(array('message' => 'User enrolled successfully'));
+            } else {
+                wp_send_json_error('Failed to enroll user');
+            }
+        } else {
+            // Remove enrollment
+            $wpdb->delete($this->tables['enrollments'], array(
+                'user_id' => $user_id,
+                'course_id' => $course_id
+            ));
+            
+            // Remove all progress
+            $wpdb->delete($this->tables['user_progress'], array(
+                'user_id' => $user_id,
+                'course_id' => $course_id
+            ));
+            
+            wp_send_json_success(array('message' => 'User enrollment removed'));
+        }
+    }
+    
+    /**
+     * AJAX: Admin complete all lessons
+     */
+    public function ajax_admin_complete_all_lessons() {
+        check_ajax_referer('admin_course_actions', 'nonce');
+        
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Insufficient permissions');
+        }
+        
+        $user_id = intval($_POST['user_id']);
+        $course_id = intval($_POST['course_id']);
+        
+        if (!$user_id || !$course_id) {
+            wp_send_json_error('Missing required parameters');
+        }
+        
+        // Get all lessons for this course
+        global $wpdb;
+        $lessons = $wpdb->get_results($wpdb->prepare(
+            "SELECT * FROM {$this->tables['lessons']} 
+            WHERE course_id = %d 
+            ORDER BY lesson_order ASC",
+            $course_id
+        ));
+        
+        $completed_count = 0;
+        foreach ($lessons as $lesson) {
+            $result = $this->mark_lesson_complete($user_id, $lesson->id);
+            if ($result) {
+                $completed_count++;
+            }
+        }
+        
+        wp_send_json_success(array(
+            'message' => "Completed {$completed_count} lessons",
+            'completed_count' => $completed_count
+        ));
+    }
+    
+    /**
+     * Get table names
+     * Public wrapper for the database class method
+     */
+    public function get_table_names() {
+        return $this->db_courses->get_table_names();
+    }
+    
+    /**
+     * Get course by slug
+     */
+    public function get_course_by_slug($course_slug) {
+        global $wpdb;
+        
+        return $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM {$this->tables['courses']} WHERE course_slug = %s",
+            $course_slug
+        ));
+    }
+    
+    /**
+     * Get user enrollment
+     */
+    public function get_user_enrollment($user_id, $course_id) {
+        global $wpdb;
+        
+        return $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM {$this->tables['enrollments']} 
+            WHERE user_id = %d AND course_id = %d AND enrollment_status = 'active'",
+            $user_id, $course_id
+        ));
     }
 }
