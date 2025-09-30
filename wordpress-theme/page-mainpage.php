@@ -38,6 +38,10 @@ $about_feature_3 = get_option('clarity_about_feature_3', 'Premium access with pe
 $about_feature_4 = get_option('clarity_about_feature_4', 'Progress tracking and certificates');
 $about_image = get_option('clarity_about_image', '');
 
+// Get courses from course manager
+$course_manager = new Clarity_AWS_GHL_Course_Manager();
+$courses = $course_manager->get_all_courses(array('status' => 'published'));
+
 // DEBUG: Removed forced slideshow setting - using admin panel setting
 
 // DEBUG: Output background type for debugging
@@ -224,44 +228,34 @@ get_header(); ?>
 
         <div class="row gy-4">
 
-          <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="100">
-            <div class="service-item position-relative">
-              <div class="icon">
-                <i class="bi bi-mortarboard"></i>
+          <?php if (!empty($courses)): ?>
+            <?php 
+            $delay = 100;
+            foreach ($courses as $course): 
+              $price_display = $course->course_price > 0 ? '$' . number_format($course->course_price, 0) : 'Free';
+              $course_url = home_url('/course/' . $course->course_slug);
+            ?>
+            <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="<?php echo $delay; ?>">
+              <div class="service-item position-relative">
+                <div class="icon">
+                  <i class="bi <?php echo esc_attr($course->course_icon ?: 'bi-mortarboard'); ?>"></i>
+                </div>
+                <a href="<?php echo esc_url($course_url); ?>" class="stretched-link">
+                  <h3><?php echo esc_html($course->course_title); ?></h3>
+                </a>
+                <p><?php echo esc_html($course->course_description); ?></p>
+                <div class="price"><?php echo esc_html($price_display); ?></div>
               </div>
-              <a href="#tier-free" class="stretched-link">
-                <h3>Free Course</h3>
-              </a>
-              <p>Get started with our introductory materials, basic tutorials, and community access. Perfect for exploring what we offer.</p>
-              <div class="price">Free</div>
+            </div><!-- End Service Item -->
+            <?php 
+            $delay += 100; 
+            endforeach; ?>
+          <?php else: ?>
+            <!-- Fallback if no courses found -->
+            <div class="col-12">
+              <p class="text-center">No courses available at this time.</p>
             </div>
-          </div><!-- End Service Item -->
-
-          <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="200">
-            <div class="service-item position-relative">
-              <div class="icon">
-                <i class="bi bi-briefcase"></i>
-              </div>
-              <a href="#tier-core" class="stretched-link">
-                <h3>Core Product</h3>
-              </a>
-              <p>Comprehensive training materials, advanced tutorials, downloadable resources, and priority support.</p>
-              <div class="price">$497</div>
-            </div>
-          </div><!-- End Service Item -->
-
-          <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="300">
-            <div class="service-item position-relative">
-              <div class="icon">
-                <i class="bi bi-star"></i>
-              </div>
-              <a href="#tier-premium" class="stretched-link">
-                <h3>Premium Access</h3>
-              </a>
-              <p>Everything in Core plus personal mentorship, one-on-one sessions, custom projects, and lifetime access.</p>
-              <div class="price">$1,997</div>
-            </div>
-          </div><!-- End Service Item -->
+          <?php endif; ?>
 
         </div>
 

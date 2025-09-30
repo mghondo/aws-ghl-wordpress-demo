@@ -1419,3 +1419,88 @@ textarea.error {
         gap: 5px;
     }
 }
+
+/* Custom Icon Dropdown Styles */
+.icon-selector-wrapper {
+    position: relative;
+    width: 300px;
+}
+
+.icon-dropdown {
+    position: relative;
+    width: 100%;
+}
+
+.icon-dropdown-selected {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: #fff;
+    cursor: pointer;
+    min-height: 40px;
+    gap: 8px;
+}
+
+.icon-dropdown-selected:hover {
+    border-color: #0073aa;
+}
+
+.icon-dropdown-selected i {
+    font-size: 18px;
+    width: 20px;
+    text-align: center;
+}
+
+.icon-dropdown-selected .selected-text {
+    flex: 1;
+}
+
+.icon-dropdown-selected .dropdown-arrow {
+    font-size: 12px;
+    transition: transform 0.2s;
+}
+
+.icon-dropdown.open .dropdown-arrow {
+    transform: rotate(180deg);
+}
+
+.icon-dropdown-options {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-top: none;
+    border-radius: 0 0 4px 4px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.icon-option-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    cursor: pointer;
+    gap: 8px;
+    transition: background-color 0.1s;
+}
+
+.icon-option-item:hover {
+    background-color: #f5f5f5;
+}
+
+.icon-option-item i {
+    font-size: 16px;
+    width: 20px;
+    text-align: center;
+    color: #333;
+}
+
+.icon-option-item span {
+    flex: 1;
+}

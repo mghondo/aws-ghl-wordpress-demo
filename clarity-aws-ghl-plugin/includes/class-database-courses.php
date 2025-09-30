@@ -54,6 +54,7 @@ class Clarity_AWS_GHL_Database_Courses {
             course_description text,
             course_tier int(1) NOT NULL DEFAULT 1,
             course_price decimal(10,2) NOT NULL DEFAULT 0.00,
+            course_icon varchar(50) NOT NULL DEFAULT 'bi-mortarboard',
             course_status varchar(20) NOT NULL DEFAULT 'draft',
             course_order int(10) NOT NULL DEFAULT 0,
             total_lessons int(10) NOT NULL DEFAULT 0,
@@ -150,8 +151,27 @@ class Clarity_AWS_GHL_Database_Courses {
         // Update database version
         update_option('clarity_aws_ghl_course_db_version', self::COURSE_DB_VERSION);
         
+        // Run any database migrations
+        $this->run_database_migrations();
+        
         // Insert default course tiers if they don't exist
         $this->insert_default_courses();
+    }
+    
+    /**
+     * Run database migrations for missing columns
+     */
+    private function run_database_migrations() {
+        global $wpdb;
+        
+        // Check if course_icon column exists
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM {$this->courses_table} LIKE 'course_icon'");
+        
+        if (empty($column_exists)) {
+            // Add course_icon column
+            $wpdb->query("ALTER TABLE {$this->courses_table} ADD COLUMN course_icon varchar(50) NOT NULL DEFAULT 'bi-mortarboard' AFTER course_price");
+            error_log('Added course_icon column to courses table');
+        }
     }
     
     /**
@@ -173,6 +193,7 @@ class Clarity_AWS_GHL_Database_Courses {
             'course_description' => 'Start your real estate journey with fundamental concepts taught by Alex Hormozi. Perfect for beginners looking to understand the basics of real estate investing.',
             'course_tier' => 1,
             'course_price' => 0.00,
+            'course_icon' => 'bi-mortarboard',
             'course_status' => 'published',
             'course_order' => 1,
             'total_lessons' => 5,
@@ -186,6 +207,7 @@ class Clarity_AWS_GHL_Database_Courses {
             'course_description' => 'Advanced strategies for intermediate real estate investors. Learn proven techniques to maximize your returns and build a sustainable portfolio.',
             'course_tier' => 2,
             'course_price' => 497.00,
+            'course_icon' => 'bi-briefcase',
             'course_status' => 'published',
             'course_order' => 2,
             'total_lessons' => 5,
@@ -199,6 +221,7 @@ class Clarity_AWS_GHL_Database_Courses {
             'course_description' => 'Scale your real estate business to 7-figures and beyond. Advanced wealth-building strategies for serious investors ready to build an empire.',
             'course_tier' => 3,
             'course_price' => 1997.00,
+            'course_icon' => 'bi-star',
             'course_status' => 'published',
             'course_order' => 3,
             'total_lessons' => 5,
