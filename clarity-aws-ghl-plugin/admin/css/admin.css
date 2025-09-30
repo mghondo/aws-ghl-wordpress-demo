@@ -1134,13 +1134,235 @@ textarea.error {
     cursor: grabbing;
 }
 
-/* Enhanced Responsive Design for Course Management */
+/* User Management Styles */
+.clarity-user-actions {
+    margin-bottom: 20px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.clarity-users-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.clarity-users-stats .stat-card {
+    background: #fff;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    text-align: center;
+}
+
+.clarity-users-stats .stat-number {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #0073aa;
+    margin-bottom: 0.5rem;
+}
+
+.clarity-users-stats .stat-label {
+    color: #666;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.access-badge {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.access-level-1 { background: #d4edda; color: #155724; }
+.access-level-2 { background: #fff3cd; color: #856404; }
+.access-level-3 { background: #f8d7da; color: #721c24; }
+
+.progress-display {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.progress-display .progress-bar {
+    flex: 1;
+    height: 8px;
+    background: #e9ecef;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-display .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #0073aa, #005a7c);
+    transition: width 0.3s ease;
+}
+
+.progress-display .progress-text {
+    font-size: 12px;
+    font-weight: 600;
+    color: #0073aa;
+    min-width: 35px;
+}
+
+.loading-row {
+    text-align: center;
+    color: #666;
+    font-style: italic;
+}
+
+.no-students {
+    text-align: center;
+    color: #666;
+    font-style: italic;
+    padding: 2rem;
+}
+
+/* Testing Tools Styles */
+.clarity-testing-controls {
+    background: #f8f9fa;
+    padding: 20px;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    margin-bottom: 30px;
+}
+
+.testing-actions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1rem;
+}
+
+.testing-action-card {
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 1.5rem;
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+}
+
+.action-icon {
+    background: #0073aa;
+    color: #fff;
+    width: 50px;
+    height: 50px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.action-content h4 {
+    margin: 0 0 0.5rem 0;
+    color: #333;
+}
+
+.action-content p {
+    margin: 0 0 1rem 0;
+    color: #666;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.action-content .button {
+    margin-top: 0.5rem;
+}
+
+.action-content .regular-text {
+    width: 100%;
+    margin-bottom: 0.5rem;
+}
+
+/* Testing Scenarios */
+.clarity-testing-scenarios {
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 1.5rem;
+}
+
+.scenario-list {
+    display: grid;
+    gap: 1rem;
+}
+
+.scenario-item {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border-left: 4px solid #0073aa;
+}
+
+.scenario-number {
+    background: #0073aa;
+    color: #fff;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    flex-shrink: 0;
+}
+
+.scenario-content h4 {
+    margin: 0 0 0.5rem 0;
+    color: #333;
+}
+
+.scenario-content p {
+    margin: 0 0 1rem 0;
+    color: #666;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.scenario-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+/* User Registration/Login Form Enhancements */
+.clarity-registration-container,
+.clarity-login-container {
+    max-width: 600px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+}
+
+/* Student Dashboard Enhancements */
+.student-dashboard-wrapper {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+}
+
+/* Frontend Script Localization */
+.clarity-frontend-scripts {
+    display: none;
+}
+
+/* Enhanced Responsive Design for User Management */
 @media (max-width: 768px) {
     .clarity-analytics-charts {
         grid-template-columns: 1fr;
     }
     
-    .clarity-course-actions {
+    .clarity-course-actions,
+    .clarity-user-actions {
         flex-direction: column;
     }
     
@@ -1172,5 +1394,28 @@ textarea.error {
     .lesson-toolbar .button-primary {
         margin-left: 0;
         width: 100%;
+    }
+    
+    .clarity-users-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .testing-actions-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .testing-action-card {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .scenario-item {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .progress-display {
+        flex-direction: column;
+        gap: 5px;
     }
 }

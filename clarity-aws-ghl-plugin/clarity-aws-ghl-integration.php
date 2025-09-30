@@ -55,6 +55,9 @@ class Clarity_AWS_GHL_Integration {
     public $courses_admin;
     public $progress_tracker;
     public $frontend_templates;
+    public $user_manager;
+    public $user_admin;
+    public $frontend_scripts;
     
     /**
      * Get single instance
@@ -117,12 +120,15 @@ class Clarity_AWS_GHL_Integration {
         require_once CLARITY_AWS_GHL_PLUGIN_DIR . 'includes/class-lesson-handler.php';
         require_once CLARITY_AWS_GHL_PLUGIN_DIR . 'includes/class-progress-tracker.php';
         require_once CLARITY_AWS_GHL_PLUGIN_DIR . 'includes/class-frontend-templates.php';
+        require_once CLARITY_AWS_GHL_PLUGIN_DIR . 'includes/class-user-manager.php';
+        require_once CLARITY_AWS_GHL_PLUGIN_DIR . 'includes/class-frontend-scripts.php';
         
         // Admin includes
         require_once CLARITY_AWS_GHL_PLUGIN_DIR . 'admin/class-settings.php';
         require_once CLARITY_AWS_GHL_PLUGIN_DIR . 'admin/class-dashboard.php';
         require_once CLARITY_AWS_GHL_PLUGIN_DIR . 'admin/class-logs.php';
         require_once CLARITY_AWS_GHL_PLUGIN_DIR . 'admin/class-courses-admin.php';
+        require_once CLARITY_AWS_GHL_PLUGIN_DIR . 'admin/class-user-admin.php';
     }
     
     /**
@@ -139,6 +145,11 @@ class Clarity_AWS_GHL_Integration {
         $this->courses_admin = new Clarity_AWS_GHL_Courses_Admin();
         $this->progress_tracker = new Clarity_AWS_GHL_Progress_Tracker();
         $this->frontend_templates = new Clarity_AWS_GHL_Frontend_Templates();
+        
+        // Initialize user management system
+        $this->user_manager = new Clarity_AWS_GHL_User_Manager();
+        $this->user_admin = new Clarity_AWS_GHL_User_Admin();
+        $this->frontend_scripts = new Clarity_AWS_GHL_Frontend_Scripts();
         
         // Initialize integrations with configuration
         $this->s3_integration = new Clarity_AWS_S3_Integration(array(
@@ -164,6 +175,29 @@ class Clarity_AWS_GHL_Integration {
     public function init() {
         // Initialize components that need WordPress to be fully loaded
         do_action('clarity_aws_ghl_init');
+        
+        // Ensure MainPage exists
+        $this->maybe_create_main_page();
+    }
+    
+    /**
+     * Check and create MainPage if it doesn't exist
+     */
+    public function maybe_create_main_page() {
+        // Only run this check once per session to avoid performance impact
+        if (get_transient('clarity_mainpage_checked')) {
+            return;
+        }
+        
+        // Check if page exists
+        $existing_page = get_page_by_path('mainpage');
+        
+        if (!$existing_page) {
+            $this->create_main_page();
+        }
+        
+        // Set transient to prevent checking on every page load (expires in 1 hour)
+        set_transient('clarity_mainpage_checked', true, HOUR_IN_SECONDS);
     }
     
     /**
@@ -264,6 +298,24 @@ class Clarity_AWS_GHL_Integration {
         
         add_submenu_page(
             'clarity-aws-ghl',
+            __('Hero', 'clarity-aws-ghl'),
+            __('Hero', 'clarity-aws-ghl'),
+            'manage_options',
+            'clarity-aws-ghl-hero',
+            array($this, 'admin_hero_background_page')
+        );
+        
+        add_submenu_page(
+            'clarity-aws-ghl',
+            __('About Us', 'clarity-aws-ghl'),
+            __('About Us', 'clarity-aws-ghl'),
+            'manage_options',
+            'clarity-aws-ghl-about',
+            array($this, 'admin_about_page')
+        );
+        
+        add_submenu_page(
+            'clarity-aws-ghl',
             __('GHL Contacts', 'clarity-aws-ghl'),
             __('GHL Contacts', 'clarity-aws-ghl'),
             'manage_options',
@@ -294,6 +346,9 @@ class Clarity_AWS_GHL_Integration {
             CLARITY_AWS_GHL_VERSION,
             true
         );
+        
+        // Enqueue WordPress media scripts for image upload
+        wp_enqueue_media();
         
         wp_localize_script('clarity-aws-ghl-admin', 'clarityAjax', array(
             'ajax_url' => admin_url('admin-ajax.php'),
@@ -328,6 +383,14 @@ class Clarity_AWS_GHL_Integration {
     public function admin_logs_page() {
         $logs = new Clarity_AWS_GHL_Logs();
         $logs->render();
+    }
+    
+    public function admin_hero_background_page() {
+        $this->render_hero_background_page();
+    }
+    
+    public function admin_about_page() {
+        $this->render_about_page();
     }
     
     /**
@@ -406,6 +469,9 @@ class Clarity_AWS_GHL_Integration {
         // Set default options
         $this->set_default_options();
         
+        // Create MainPage if it doesn't exist
+        $this->create_main_page();
+        
         // Flush rewrite rules for custom post types
         flush_rewrite_rules();
         
@@ -482,6 +548,46 @@ class Clarity_AWS_GHL_Integration {
     }
     
     /**
+     * Create MainPage with clarity_main_page shortcode
+     */
+    private function create_main_page() {
+        // Check if page already exists
+        $existing_page = get_page_by_path('mainpage');
+        
+        if ($existing_page) {
+            error_log('MainPage already exists with ID: ' . $existing_page->ID);
+            return $existing_page->ID;
+        }
+        
+        // Create the page
+        $page_data = array(
+            'post_title'    => 'MainPage',
+            'post_name'     => 'mainpage',
+            'post_content'  => '[clarity_main_page]',
+            'post_status'   => 'publish',
+            'post_type'     => 'page',
+            'post_author'   => 1,
+            'comment_status' => 'closed',
+            'ping_status'   => 'closed'
+        );
+        
+        $page_id = wp_insert_post($page_data);
+        
+        if (!is_wp_error($page_id)) {
+            error_log('MainPage created successfully with ID: ' . $page_id);
+            
+            // Optionally set it as the homepage
+            // update_option('page_on_front', $page_id);
+            // update_option('show_on_front', 'page');
+            
+            return $page_id;
+        } else {
+            error_log('Error creating MainPage: ' . $page_id->get_error_message());
+            return false;
+        }
+    }
+    
+    /**
      * Get S3 integration instance
      */
     public function get_s3_integration() {
@@ -513,6 +619,334 @@ class Clarity_AWS_GHL_Integration {
             ),
             'webhook_url' => $webhook_url
         );
+    }
+    
+    /**
+     * Render hero background settings page
+     */
+    public function render_hero_background_page() {
+        // Handle form submission
+        if (isset($_POST['submit']) && wp_verify_nonce($_POST['_wpnonce'], 'clarity_hero_bg_settings')) {
+            $bg_type = sanitize_text_field($_POST['bg_type']);
+            $custom_image = esc_url_raw($_POST['custom_image']);
+            $image_position = sanitize_text_field($_POST['image_position']);
+            $hero_title = sanitize_text_field($_POST['hero_title']);
+            $hero_description = sanitize_textarea_field($_POST['hero_description']);
+            $hero_darkness = intval($_POST['hero_darkness']);
+            $hero_darkness = max(0, min(100, $hero_darkness)); // Ensure between 0 and 100
+            
+            // Validate background type
+            if (in_array($bg_type, array('default', 'slideshow', 'custom'))) {
+                update_option('clarity_hero_bg_type', $bg_type);
+                update_option('clarity_hero_custom_image', $custom_image);
+                update_option('clarity_hero_image_position', $image_position);
+                update_option('clarity_hero_title', $hero_title);
+                update_option('clarity_hero_description', $hero_description);
+                update_option('clarity_hero_darkness', $hero_darkness);
+                
+                echo '<div class="notice notice-success"><p>Hero settings saved successfully!</p></div>';
+            } else {
+                echo '<div class="notice notice-error"><p>Invalid background type selected.</p></div>';
+            }
+        }
+        
+        // Get current settings
+        $bg_type = get_option('clarity_hero_bg_type', 'default');
+        $custom_image = get_option('clarity_hero_custom_image', '');
+        $image_position = get_option('clarity_hero_image_position', 'center center');
+        $hero_title = get_option('clarity_hero_title', 'Transform Your Skills with Our Course Platform');
+        $hero_description = get_option('clarity_hero_description', 'Join thousands of students who are mastering new skills through our comprehensive three-tier learning system. From free introductory content to premium mentorship programs.');
+        $hero_darkness = get_option('clarity_hero_darkness', 80); // Default 80% darkness
+        
+        ?>
+        <div class="wrap">
+            <h1><?php echo esc_html(get_admin_page_title()); ?></h1>
+            <p>Configure the hero section text content and background settings for your main page.</p>
+            
+            <form method="post" action="" enctype="multipart/form-data">
+                <?php wp_nonce_field('clarity_hero_bg_settings'); ?>
+                
+                <table class="form-table">
+                    <tr>
+                        <th scope="row">Background Type</th>
+                        <td>
+                            <fieldset>
+                                <label>
+                                    <input type="radio" name="bg_type" value="default" <?php checked($bg_type, 'default'); ?>>
+                                    Default (Animated Shapes)
+                                </label><br>
+                                
+                                <label>
+                                    <input type="radio" name="bg_type" value="slideshow" <?php checked($bg_type, 'slideshow'); ?>>
+                                    Home Slide Presentation
+                                </label><br>
+                                <p class="description">Images will randomly slide from different directions every 5 seconds using the Netlify image inventory.</p>
+                                
+                                <label>
+                                    <input type="radio" name="bg_type" value="custom" <?php checked($bg_type, 'custom'); ?>>
+                                    Custom Image
+                                </label>
+                            </fieldset>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <th scope="row">Hero Title</th>
+                        <td>
+                            <input type="text" name="hero_title" value="<?php echo esc_attr($hero_title); ?>" class="regular-text" placeholder="Transform Your Skills with Our Course Platform">
+                            <p class="description">The main headline text for your hero section.</p>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <th scope="row">Hero Description</th>
+                        <td>
+                            <textarea name="hero_description" rows="3" class="large-text" placeholder="Join thousands of students who are mastering new skills..."><?php echo esc_textarea($hero_description); ?></textarea>
+                            <p class="description">The description text that appears below the hero title.</p>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <th scope="row">Image Darkness</th>
+                        <td>
+                            <label for="hero_darkness">
+                                <input type="range" id="hero_darkness" name="hero_darkness" min="0" max="100" value="<?php echo esc_attr($hero_darkness); ?>" style="width: 300px;">
+                                <span id="darkness_value"><?php echo esc_html($hero_darkness); ?>%</span>
+                            </label>
+                            <p class="description">Adjust how dark the background images appear (0% = no darkening, 100% = completely black). Applies to slideshow and custom images.</p>
+                            <div id="darkness_preview" style="margin-top: 10px; width: 300px; height: 100px; background: url('<?php echo $custom_image ?: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMzAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzY2NiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmaWxsPSIjZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSI+UHJldmlldyBBcmVhPC90ZXh0Pjwvc3ZnPg=='; ?>') center/cover; position: relative;">
+                                <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, <?php echo $hero_darkness / 100; ?>);"></div>
+                                <div style="position: relative; color: white; padding: 20px; text-align: center; font-weight: bold;">Sample Text</div>
+                            </div>
+                        </td>
+                    </tr>
+                    
+                    <tr id="custom-image-row" style="<?php echo $bg_type !== 'custom' ? 'display:none;' : ''; ?>">
+                        <th scope="row">Custom Image URL</th>
+                        <td>
+                            <input type="url" name="custom_image" value="<?php echo esc_attr($custom_image); ?>" class="regular-text" placeholder="https://example.com/image.jpg">
+                            <p class="description">Enter the URL of your custom background image.</p>
+                            
+                            <?php if ($custom_image): ?>
+                                <div style="margin-top: 10px;">
+                                    <img src="<?php echo esc_url($custom_image); ?>" alt="Current background" style="max-width: 300px; height: auto; border: 1px solid #ddd; padding: 5px;">
+                                    <p class="description">Current background image</p>
+                                </div>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                    
+                    <tr id="image-position-row" style="<?php echo $bg_type !== 'custom' ? 'display:none;' : ''; ?>">
+                        <th scope="row">Image Position</th>
+                        <td>
+                            <select name="image_position">
+                                <option value="left top" <?php selected($image_position, 'left top'); ?>>Top Left</option>
+                                <option value="center top" <?php selected($image_position, 'center top'); ?>>Top Center</option>
+                                <option value="right top" <?php selected($image_position, 'right top'); ?>>Top Right</option>
+                                <option value="left center" <?php selected($image_position, 'left center'); ?>>Center Left</option>
+                                <option value="center center" <?php selected($image_position, 'center center'); ?>>Center</option>
+                                <option value="right center" <?php selected($image_position, 'right center'); ?>>Center Right</option>
+                                <option value="left bottom" <?php selected($image_position, 'left bottom'); ?>>Bottom Left</option>
+                                <option value="center bottom" <?php selected($image_position, 'center bottom'); ?>>Bottom Center</option>
+                                <option value="right bottom" <?php selected($image_position, 'right bottom'); ?>>Bottom Right</option>
+                            </select>
+                            <p class="description">Choose how the background image should be positioned.</p>
+                        </td>
+                    </tr>
+                </table>
+                
+                <?php submit_button('Save Hero Settings'); ?>
+            </form>
+            
+            <script>
+            jQuery(document).ready(function($) {
+                $('input[name="bg_type"]').change(function() {
+                    var bgType = $(this).val();
+                    if (bgType === 'custom') {
+                        $('#custom-image-row, #image-position-row').show();
+                    } else {
+                        $('#custom-image-row, #image-position-row').hide();
+                    }
+                });
+                
+                // Darkness slider real-time preview
+                $('#hero_darkness').on('input', function() {
+                    var darkness = $(this).val();
+                    $('#darkness_value').text(darkness + '%');
+                    
+                    // Update preview overlay
+                    $('#darkness_preview > div').first().css('background', 'rgba(0, 0, 0, ' + (darkness / 100) + ')');
+                });
+            });
+            </script>
+        </div>
+        <?php
+    }
+    
+    /**
+     * Render about page
+     */
+    public function render_about_page() {
+        // Handle form submission
+        if (isset($_POST['submit']) && wp_verify_nonce($_POST['_wpnonce'], 'clarity_about_settings')) {
+            $about_title = sanitize_text_field($_POST['about_title']);
+            $about_description = sanitize_textarea_field($_POST['about_description']);
+            $about_feature_1 = sanitize_text_field($_POST['about_feature_1']);
+            $about_feature_2 = sanitize_text_field($_POST['about_feature_2']);
+            $about_feature_3 = sanitize_text_field($_POST['about_feature_3']);
+            $about_feature_4 = sanitize_text_field($_POST['about_feature_4']);
+            $about_image = sanitize_text_field($_POST['about_image']);
+            
+            update_option('clarity_about_title', $about_title);
+            update_option('clarity_about_description', $about_description);
+            update_option('clarity_about_feature_1', $about_feature_1);
+            update_option('clarity_about_feature_2', $about_feature_2);
+            update_option('clarity_about_feature_3', $about_feature_3);
+            update_option('clarity_about_feature_4', $about_feature_4);
+            update_option('clarity_about_image', $about_image);
+            
+            echo '<div class="notice notice-success"><p>About Us settings saved successfully!</p></div>';
+        }
+        
+        // Get current settings
+        $about_title = get_option('clarity_about_title', 'Innovative Learning for a Skills-First World');
+        $about_description = get_option('clarity_about_description', 'Our comprehensive three-tier learning system is designed to take you from beginner to expert. Whether you\'re just starting out or looking to advance your skills, we have the perfect program for you.');
+        $about_feature_1 = get_option('clarity_about_feature_1', 'Free introductory courses to get you started');
+        $about_feature_2 = get_option('clarity_about_feature_2', 'Core product with comprehensive training materials');
+        $about_feature_3 = get_option('clarity_about_feature_3', 'Premium access with personal mentorship');
+        $about_feature_4 = get_option('clarity_about_feature_4', 'Progress tracking and certificates');
+        $about_image = get_option('clarity_about_image', '');
+        
+        ?>
+        <div class="wrap">
+            <h1><?php _e('About Us Settings', 'clarity-aws-ghl'); ?></h1>
+            
+            <p><?php _e('Configure the About Us section content that appears on the main page.', 'clarity-aws-ghl'); ?></p>
+            
+            <form method="post" action="">
+                <?php wp_nonce_field('clarity_about_settings'); ?>
+                
+                <table class="form-table">
+                    <tr>
+                        <th scope="row">Section Title</th>
+                        <td>
+                            <input type="text" name="about_title" value="<?php echo esc_attr($about_title); ?>" class="regular-text" />
+                            <p class="description">The main heading for the About Us section.</p>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <th scope="row">Description</th>
+                        <td>
+                            <textarea name="about_description" rows="4" cols="50" class="large-text"><?php echo esc_textarea($about_description); ?></textarea>
+                            <p class="description">The descriptive text that explains your learning system.</p>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <th scope="row">Feature 1</th>
+                        <td>
+                            <input type="text" name="about_feature_1" value="<?php echo esc_attr($about_feature_1); ?>" class="regular-text" />
+                            <p class="description">First feature bullet point.</p>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <th scope="row">Feature 2</th>
+                        <td>
+                            <input type="text" name="about_feature_2" value="<?php echo esc_attr($about_feature_2); ?>" class="regular-text" />
+                            <p class="description">Second feature bullet point.</p>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <th scope="row">Feature 3</th>
+                        <td>
+                            <input type="text" name="about_feature_3" value="<?php echo esc_attr($about_feature_3); ?>" class="regular-text" />
+                            <p class="description">Third feature bullet point.</p>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <th scope="row">Feature 4</th>
+                        <td>
+                            <input type="text" name="about_feature_4" value="<?php echo esc_attr($about_feature_4); ?>" class="regular-text" />
+                            <p class="description">Fourth feature bullet point.</p>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <th scope="row">About Us Image</th>
+                        <td>
+                            <input type="hidden" name="about_image" id="about_image" value="<?php echo esc_attr($about_image); ?>" />
+                            <div id="about_image_preview" style="margin-bottom: 10px;">
+                                <?php if ($about_image): ?>
+                                    <img src="<?php echo esc_url($about_image); ?>" alt="About Us Preview" style="max-width: 300px; height: auto; border: 1px solid #ddd; padding: 5px;">
+                                <?php else: ?>
+                                    <div style="width: 300px; height: 200px; border: 2px dashed #ccc; display: flex; align-items: center; justify-content: center; color: #666;">
+                                        No image selected
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                            <button type="button" id="upload_about_image" class="button button-secondary">
+                                <?php echo $about_image ? 'Change Image' : 'Upload Image'; ?>
+                            </button>
+                            <button type="button" id="remove_about_image" class="button button-secondary" style="<?php echo !$about_image ? 'display:none;' : ''; ?>">
+                                Remove Image
+                            </button>
+                            <p class="description">Upload an image for the About Us section. Recommended size: 600x400px or larger.</p>
+                        </td>
+                    </tr>
+                </table>
+                
+                <?php submit_button('Save About Us Settings'); ?>
+            </form>
+            
+            <script>
+            jQuery(document).ready(function($) {
+                var mediaUploader;
+                
+                $('#upload_about_image').click(function(e) {
+                    e.preventDefault();
+                    
+                    if (mediaUploader) {
+                        mediaUploader.open();
+                        return;
+                    }
+                    
+                    mediaUploader = wp.media({
+                        title: 'Choose About Us Image',
+                        button: {
+                            text: 'Choose Image'
+                        },
+                        multiple: false,
+                        library: {
+                            type: 'image'
+                        }
+                    });
+                    
+                    mediaUploader.on('select', function() {
+                        var attachment = mediaUploader.state().get('selection').first().toJSON();
+                        $('#about_image').val(attachment.url);
+                        $('#about_image_preview').html('<img src="' + attachment.url + '" alt="About Us Preview" style="max-width: 300px; height: auto; border: 1px solid #ddd; padding: 5px;">');
+                        $('#upload_about_image').text('Change Image');
+                        $('#remove_about_image').show();
+                    });
+                    
+                    mediaUploader.open();
+                });
+                
+                $('#remove_about_image').click(function(e) {
+                    e.preventDefault();
+                    $('#about_image').val('');
+                    $('#about_image_preview').html('<div style="width: 300px; height: 200px; border: 2px dashed #ccc; display: flex; align-items: center; justify-content: center; color: #666;">No image selected</div>');
+                    $('#upload_about_image').text('Upload Image');
+                    $(this).hide();
+                });
+            });
+            </script>
+        </div>
+        <?php
     }
 }
 

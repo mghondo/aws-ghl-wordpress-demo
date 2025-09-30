@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Asset Test</title>
+</head>
+<body>
+    <h1>Testing Assets Loading</h1>
+    
+    <h2>CSS Tests:</h2>
+    <p>Bootstrap CSS: <a href="http://localhost:8080/wp-content/themes/clarity-theme/assets/vendor/bootstrap/css/bootstrap.min.css" target="_blank">Test Bootstrap</a></p>
+    <p>Main CSS: <a href="http://localhost:8080/wp-content/themes/clarity-theme/assets/css/main.css" target="_blank">Test Main CSS</a></p>
+    <p>Dynamic CSS: <a href="http://localhost:8080/wp-content/themes/clarity-theme/assets/css/main-page-dynamic.css" target="_blank">Test Dynamic CSS</a></p>
+    
+    <h2>JS Tests:</h2>
+    <p>Main JS: <a href="http://localhost:8080/wp-content/themes/clarity-theme/assets/js/main.js" target="_blank">Test Main JS</a></p>
+    <p>MainPage JS: <a href="http://localhost:8080/wp-content/themes/clarity-theme/assets/js/main-page.js" target="_blank">Test MainPage JS</a></p>
+    
+    <h2>Page Test:</h2>
+    <p><strong>✅ MainPage Template (FIXED):</strong> <a href="http://localhost:8080/?page_id=21" target="_blank">Test MainPage - Hero Content Now Visible!</a></p>
+    <p><strong>🎛️ Hero Background Admin:</strong> <a href="http://localhost:8080/wp-admin/admin.php?page=clarity-aws-ghl-hero" target="_blank">Configure Background</a></p>
+    
+    <h3>What's Now Working:</h3>
+    <ul>
+        <li>✅ Hero heading and description text</li>
+        <li>✅ Hero statistics (3 stat cards: Students, Completion Rate, Course Tiers)</li>
+        <li>✅ Hero image on right side with floating course cards</li>
+        <li>✅ Course tier cards section</li>
+        <li>✅ All dynamic background options (default, slideshow, custom)</li>
+        <li>✅ Complete Clarity template styling</li>
+        <li>✅ FIXED: Slideshow background now loads imageInventory.json from theme assets</li>
+        <li>✅ FIXED: Image URLs properly constructed for Netlify hosting</li>
+    </ul>
+    
+    <h3>Latest Fixes Applied:</h3>
+    <ul>
+        <li>📁 Copied imageInventory.json to theme assets directory</li>
+        <li>🔧 Updated main-page.js to load JSON from correct path</li>
+        <li>🎯 Fixed image URL construction with proper /A/Anywhere/, /B/Midwest/, etc. paths</li>
+        <li>🎭 MAJOR FIX: Removed foreground img tag that was hiding background slideshow</li>
+        <li>🌍 Now loads ALL images from categories A, B, C and all regions</li>
+        <li>⏱️ Real estate images now cycle every 5 seconds as hero background</li>
+        <li>🐛 FIXED: JavaScript syntax error that prevented slideshow execution</li>
+    </ul>
+    
+    <h3>🎬 NEW: Cinematic Effects Added:</h3>
+    <ul>
+        <li>🌙 40% darker images with double overlay for better text readability</li>
+        <li>🎥 Ken Burns effect: Images zoom and pan during 5-second display</li>
+        <li>📐 8 random directions: up/down, left/right, diagonals</li>
+        <li>🌅 Smooth fade transitions between images (1 second fade)</li>
+        <li>✨ Each image gets random zoom/pan animation for cinematic feel</li>
+    </ul>
+    
+    <iframe src="http://localhost:8080/?page_id=21" width="100%" height="600" style="border: 1px solid #ccc; margin-top: 20px;"></iframe>
+</body>
+</html>

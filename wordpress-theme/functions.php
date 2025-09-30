@@ -47,6 +47,15 @@ function clarity_theme_setup() {
 add_action('after_setup_theme', 'clarity_theme_setup');
 
 /**
+ * Add custom page templates to the dropdown
+ */
+function clarity_add_page_templates($templates) {
+    $templates['page-mainpage.php'] = 'MainPage';
+    return $templates;
+}
+add_filter('theme_page_templates', 'clarity_add_page_templates');
+
+/**
  * Enqueue styles and scripts
  */
 function clarity_enqueue_assets() {
