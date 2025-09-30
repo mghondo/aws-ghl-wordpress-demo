@@ -176,8 +176,39 @@ class Clarity_AWS_GHL_Integration {
         // Initialize components that need WordPress to be fully loaded
         do_action('clarity_aws_ghl_init');
         
+        // Add course URL rewrite rules
+        $this->add_course_rewrite_rules();
+        
         // Ensure MainPage exists
         $this->maybe_create_main_page();
+        
+        // Ensure Course page exists  
+        $this->maybe_create_course_page();
+    }
+    
+    /**
+     * Add rewrite rules for course URLs
+     */
+    private function add_course_rewrite_rules() {
+        // Add rewrite rules for /course/[course-slug]/ URLs
+        add_rewrite_rule(
+            '^course/([^/]+)/?$',
+            'index.php?pagename=course&course_slug=$matches[1]',
+            'top'
+        );
+        
+        // Add query var for course slug
+        add_filter('query_vars', function($vars) {
+            $vars[] = 'course_slug';
+            return $vars;
+        });
+        
+        // Check if rewrite rules need to be flushed
+        // Force flush for debugging - remove the '2' after confirming it works
+        if (!get_option('clarity_rewrite_rules_flushed_2')) {
+            flush_rewrite_rules();
+            update_option('clarity_rewrite_rules_flushed_2', true);
+        }
     }
     
     /**
@@ -198,6 +229,26 @@ class Clarity_AWS_GHL_Integration {
         
         // Set transient to prevent checking on every page load (expires in 1 hour)
         set_transient('clarity_mainpage_checked', true, HOUR_IN_SECONDS);
+    }
+    
+    /**
+     * Check and create Course page if it doesn't exist
+     */
+    public function maybe_create_course_page() {
+        // Only run this check once per session to avoid performance impact
+        if (get_transient('clarity_coursepage_checked')) {
+            return;
+        }
+        
+        // Check if page exists
+        $existing_page = get_page_by_path('course');
+        
+        if (!$existing_page) {
+            $this->create_course_page();
+        }
+        
+        // Set transient to prevent checking on every page load (expires in 1 hour)
+        set_transient('clarity_coursepage_checked', true, HOUR_IN_SECONDS);
     }
     
     /**
@@ -610,6 +661,44 @@ class Clarity_AWS_GHL_Integration {
             return $page_id;
         } else {
             error_log('Error creating MainPage: ' . $page_id->get_error_message());
+            return false;
+        }
+    }
+    
+    /**
+     * Create course page for course viewer
+     */
+    private function create_course_page() {
+        // Check if page already exists
+        $existing_page = get_page_by_path('course');
+        
+        if ($existing_page) {
+            error_log('Course page already exists with ID: ' . $existing_page->ID);
+            return $existing_page->ID;
+        }
+        
+        // Create the page
+        $page_data = array(
+            'post_title'    => 'Course',
+            'post_name'     => 'course',
+            'post_content'  => '<!-- Course content handled by template -->',
+            'post_status'   => 'publish',
+            'post_type'     => 'page',
+            'post_author'   => 1,
+            'comment_status' => 'closed',
+            'ping_status'   => 'closed',
+            'meta_input'    => array(
+                '_wp_page_template' => 'page-course.php'
+            )
+        );
+        
+        $page_id = wp_insert_post($page_data);
+        
+        if (!is_wp_error($page_id)) {
+            error_log('Course page created successfully with ID: ' . $page_id);
+            return $page_id;
+        } else {
+            error_log('Error creating Course page: ' . $page_id->get_error_message());
             return false;
         }
     }
