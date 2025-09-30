@@ -10,6 +10,21 @@
     'use strict';
     
     $(document).ready(function() {
+        // Debug: Check if jQuery is loaded
+        console.log('jQuery loaded:', typeof $ !== 'undefined');
+        console.log('Course admin JS starting...');
+        
+        // Debug: Check if modal exists after DOM ready
+        setTimeout(function() {
+            var modal = $('#icon-picker-modal');
+            console.log('Modal check after DOM ready:', modal.length);
+            if (modal.length > 0) {
+                console.log('Modal HTML found in DOM');
+            } else {
+                console.error('Modal HTML NOT found in DOM');
+            }
+        }, 1000);
+        
         initCourseManagement();
         initTestingControls();
         initModals();
@@ -24,6 +39,13 @@
             $('#add-course-modal').show();
         });
         
+        // Fix database button
+        $('#run-migration-btn').on('click', function() {
+            if (confirm('This will fix the database by adding missing columns. Continue?')) {
+                runMigration();
+            }
+        });
+        
         // Save course button
         $('#save-course-btn').on('click', function() {
             saveCourse();
@@ -36,8 +58,9 @@
             editCourse(courseId);
         });
         
-        // Update course button
-        $('#update-course-btn').on('click', function() {
+        // Update course button (use event delegation for dynamic content)
+        $(document).on('click', '#update-course-btn', function() {
+            console.log('Update course button clicked');
             updateCourse();
         });
         
@@ -133,15 +156,106 @@
      * Initialize modal functionality
      */
     function initModals() {
-        // Close modal
-        $('.clarity-modal-close').on('click', function() {
+        // Close modal functionality for existing course/lesson modals
+        $(document).on('click', '.clarity-modal-close', function() {
             $(this).closest('.clarity-modal').hide();
         });
         
         // Close modal when clicking outside
-        $('.clarity-modal').on('click', function(e) {
+        $(document).on('click', '.clarity-modal', function(e) {
             if (e.target === this) {
                 $(this).hide();
+            }
+        });
+        
+        // Custom icon dropdown functionality
+        $(document).on('click', '.icon-dropdown-selected', function() {
+            console.log('Icon dropdown clicked');
+            var dropdown = $(this).closest('.icon-dropdown');
+            var dropdownId = dropdown.attr('id');
+            var options = dropdown.find('.icon-dropdown-options');
+            var isOpen = options.is(':visible');
+            
+            console.log('Dropdown ID:', dropdownId);
+            console.log('Is open:', isOpen);
+            
+            // Close all other dropdowns first
+            $('.icon-dropdown-options').hide();
+            $('.icon-dropdown').removeClass('open');
+            
+            // Toggle current dropdown
+            if (!isOpen) {
+                options.show();
+                dropdown.addClass('open');
+                console.log('Dropdown opened');
+            }
+        });
+        
+        // Icon selection
+        $(document).on('click', '.icon-option-item', function() {
+            console.log('Icon option clicked');
+            var $option = $(this);
+            var iconClass = $option.data('value');
+            var iconName = $option.data('name');
+            var dropdownId = $option.data('dropdown');
+            
+            console.log('Selected icon:', iconClass, iconName);
+            
+            var $dropdown = $('#' + dropdownId);
+            var $hiddenInput = $dropdown.closest('.icon-selector-wrapper').find('input[type="hidden"]');
+            var $selectedIcon = $dropdown.find('.icon-dropdown-selected i:first-child');
+            var $selectedText = $dropdown.find('.selected-text');
+            var $options = $dropdown.find('.icon-dropdown-options');
+            
+            // Update hidden input value
+            $hiddenInput.val(iconClass);
+            
+            // Update preview icon
+            $selectedIcon.removeClass().addClass('bi ' + iconClass);
+            
+            // Update selected text
+            $selectedText.text(iconName);
+            
+            // Close dropdown
+            $options.hide();
+            $dropdown.removeClass('open');
+            
+            console.log('Icon updated successfully');
+        });
+        
+        // Close dropdowns when clicking outside
+        $(document).on('click', function(e) {
+            if (!$(e.target).closest('.icon-dropdown').length) {
+                $('.icon-dropdown-options').hide();
+                $('.icon-dropdown').removeClass('open');
+            }
+        });
+    }
+    
+    /**
+     * Run database migration
+     */
+    function runMigration() {
+        console.log('Running database migration...');
+        
+        $.ajax({
+            url: clarityCoursesAjax.ajax_url,
+            type: 'POST',
+            data: {
+                action: 'clarity_run_migration',
+                nonce: clarityCoursesAjax.nonce
+            },
+            success: function(response) {
+                console.log('Migration response:', response);
+                if (response.success) {
+                    showMessage('Database fixed successfully! You can now update courses.', 'success');
+                } else {
+                    showMessage(response.data || 'Migration failed', 'error');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.log('Migration AJAX Error:', xhr, status, error);
+                showMessage('Migration error occurred: ' + error, 'error');
             }
         });
     }
@@ -167,7 +281,8 @@
             course_description: $form.find('[name="course_description"]').val(),
             course_tier: $form.find('[name="course_tier"]').val(),
             course_price: $form.find('[name="course_price"]').val(),
-            course_status: $form.find('[name="course_status"]').val()
+            course_status: $form.find('[name="course_status"]').val(),
+            course_icon: $form.find('[name="course_icon"]').val()
         };
         
         $button.prop('disabled', true).text(clarityCoursesAjax.strings.processing);
@@ -181,7 +296,10 @@
                     showMessage(response.data.message, 'success');
                     $('#add-course-modal').hide();
                     $form[0].reset();
-                    location.reload(); // Refresh to show new course
+                    // Small delay before reload to show success message
+                    setTimeout(function() {
+                        location.reload(); // Refresh to show new course
+                    }, 1000);
                 } else {
                     showMessage(response.data || 'Failed to create course', 'error');
                 }
@@ -959,6 +1077,15 @@
                     $('#edit-course-form [name="course_description"]').val(course.course_description);
                     $('#edit-course-form [name="course_price"]').val(course.course_price);
                     $('#edit-course-form [name="course_status"]').val(course.course_status);
+                    $('#edit-course-form [name="course_icon"]').val(course.course_icon || 'bi-mortarboard');
+                    
+                    // Update custom dropdown display
+                    var iconClass = course.course_icon || 'bi-mortarboard';
+                    var iconOption = $('#edit_icon_dropdown .icon-option-item[data-value="' + iconClass + '"]');
+                    var iconName = iconOption.length ? iconOption.data('name') : 'Graduation Cap';
+                    $('#edit_selected_icon_preview').removeClass().addClass('bi ' + iconClass);
+                    $('#edit_icon_dropdown .selected-text').text(iconName);
+                    
                     $('#edit-course-modal').show();
                 } else {
                     showMessage(response.data || 'Failed to load course', 'error');
@@ -974,8 +1101,12 @@
      * Update course
      */
     function updateCourse() {
+        console.log('updateCourse function called');
         var $form = $('#edit-course-form');
         var $button = $('#update-course-btn');
+        
+        console.log('Form found:', $form.length);
+        console.log('Button found:', $button.length);
         
         if (!$form[0].checkValidity()) {
             $form[0].reportValidity();
@@ -989,9 +1120,13 @@
             course_title: $form.find('[name="course_title"]').val(),
             course_description: $form.find('[name="course_description"]').val(),
             course_price: $form.find('[name="course_price"]').val(),
-            course_status: $form.find('[name="course_status"]').val()
+            course_status: $form.find('[name="course_status"]').val(),
+            course_icon: $('#edit_course_icon').val() || 'bi-mortarboard'
         };
         
+        console.log('Form data collected:', formData);
+        
+        console.log('Sending AJAX request with data:', formData);
         $button.prop('disabled', true).text('Updating...');
         
         $.ajax({
@@ -999,16 +1134,25 @@
             type: 'POST',
             data: formData,
             success: function(response) {
+                console.log('AJAX response received:', response);
                 if (response.success) {
+                    console.log('Course update successful, hiding modal');
                     showMessage('Course updated successfully', 'success');
                     $('#edit-course-modal').hide();
-                    location.reload(); // Refresh to show updated course
+                    console.log('Modal hidden, reloading page in 1 second');
+                    // Small delay before reload to show success message
+                    setTimeout(function() {
+                        location.reload(); // Refresh to show updated course
+                    }, 1000);
                 } else {
+                    console.log('Course update failed:', response.data);
                     showMessage(response.data || 'Failed to update course', 'error');
                 }
             },
-            error: function() {
-                showMessage('Ajax error occurred', 'error');
+            error: function(xhr, status, error) {
+                console.log('AJAX Error:', xhr, status, error);
+                console.log('Response text:', xhr.responseText);
+                showMessage('Ajax error occurred: ' + error, 'error');
             },
             complete: function() {
                 $button.prop('disabled', false).text('Update Course');

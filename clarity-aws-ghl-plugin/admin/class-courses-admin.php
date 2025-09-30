@@ -32,6 +32,120 @@ class Clarity_AWS_GHL_Courses_Admin {
     }
     
     /**
+     * Get available course icons
+     */
+    public function get_course_icons() {
+        return array(
+            'bi-mortarboard' => 'Graduation Cap',
+            'bi-briefcase' => 'Briefcase',
+            'bi-star' => 'Star',
+            'bi-book' => 'Book',
+            'bi-trophy' => 'Trophy',
+            'bi-certificate' => 'Certificate',
+            'bi-graph-up' => 'Graph Up',
+            'bi-lightbulb' => 'Light Bulb',
+            'bi-rocket' => 'Rocket',
+            'bi-shield-check' => 'Shield Check',
+            'bi-gem' => 'Gem',
+            'bi-cpu' => 'CPU',
+            'bi-gear' => 'Gear',
+            'bi-house' => 'House',
+            'bi-building' => 'Building',
+            'bi-bank' => 'Bank',
+            'bi-cash-stack' => 'Cash Stack',
+            'bi-credit-card' => 'Credit Card',
+            'bi-piggy-bank' => 'Piggy Bank',
+            'bi-graph-up-arrow' => 'Graph Arrow',
+            'bi-bar-chart' => 'Bar Chart',
+            'bi-pie-chart' => 'Pie Chart',
+            'bi-calculator' => 'Calculator',
+            'bi-clipboard-data' => 'Clipboard Data',
+            'bi-file-earmark-text' => 'Document',
+            'bi-journal-bookmark' => 'Journal',
+            'bi-pencil-square' => 'Edit',
+            'bi-eyeglasses' => 'Glasses',
+            'bi-binoculars' => 'Binoculars',
+            'bi-compass' => 'Compass',
+            'bi-map' => 'Map',
+            'bi-globe' => 'Globe',
+            'bi-award' => 'Award',
+            'bi-badge-tm' => 'Trademark',
+            'bi-patch-check' => 'Patch Check',
+            'bi-hand-thumbs-up' => 'Thumbs Up',
+            'bi-heart' => 'Heart',
+            'bi-fire' => 'Fire',
+            'bi-lightning' => 'Lightning',
+            'bi-sun' => 'Sun',
+            'bi-moon' => 'Moon',
+            'bi-cloud' => 'Cloud',
+            'bi-umbrella' => 'Umbrella',
+            'bi-tree' => 'Tree',
+            'bi-flower1' => 'Flower',
+            'bi-camera' => 'Camera',
+            'bi-mic' => 'Microphone',
+            'bi-headphones' => 'Headphones',
+            'bi-speaker' => 'Speaker',
+            'bi-phone' => 'Phone',
+            'bi-laptop' => 'Laptop',
+            'bi-tablet' => 'Tablet',
+            'bi-smartphone' => 'Smartphone',
+            'bi-display' => 'Monitor',
+            'bi-printer' => 'Printer',
+            'bi-wifi' => 'WiFi',
+            'bi-bluetooth' => 'Bluetooth',
+            'bi-usb' => 'USB',
+            'bi-plug' => 'Plug',
+            'bi-battery' => 'Battery',
+            'bi-power' => 'Power',
+            'bi-wrench' => 'Wrench',
+            'bi-hammer' => 'Hammer',
+            'bi-screwdriver' => 'Screwdriver',
+            'bi-tools' => 'Tools',
+            'bi-nut' => 'Nut',
+            'bi-key' => 'Key',
+            'bi-lock' => 'Lock',
+            'bi-unlock' => 'Unlock',
+            'bi-safe' => 'Safe',
+            'bi-shield' => 'Shield',
+            'bi-person' => 'Person',
+            'bi-people' => 'People',
+            'bi-person-check' => 'Person Check',
+            'bi-person-plus' => 'Person Plus',
+            'bi-chat' => 'Chat',
+            'bi-chat-dots' => 'Chat Dots',
+            'bi-envelope' => 'Envelope',
+            'bi-bell' => 'Bell',
+            'bi-alarm' => 'Alarm',
+            'bi-calendar' => 'Calendar',
+            'bi-clock' => 'Clock',
+            'bi-stopwatch' => 'Stopwatch',
+            'bi-hourglass' => 'Hourglass',
+            'bi-speedometer' => 'Speedometer',
+            'bi-activity' => 'Activity',
+            'bi-bandaid' => 'Bandaid',
+            'bi-capsule' => 'Capsule',
+            'bi-eyedropper' => 'Eyedropper',
+            'bi-thermometer' => 'Thermometer',
+            'bi-heart-pulse' => 'Heart Pulse',
+            'bi-basket' => 'Basket',
+            'bi-cart' => 'Cart',
+            'bi-bag' => 'Bag',
+            'bi-gift' => 'Gift',
+            'bi-balloon' => 'Balloon',
+            'bi-emoji-smile' => 'Smile',
+            'bi-emoji-wink' => 'Wink',
+            'bi-dice-1' => 'Dice 1',
+            'bi-puzzle' => 'Puzzle',
+            'bi-controller' => 'Controller',
+            'bi-joystick' => 'Joystick',
+            'bi-music-note' => 'Music Note',
+            'bi-palette' => 'Palette',
+            'bi-brush' => 'Brush',
+            'bi-paint-bucket' => 'Paint Bucket'
+        );
+    }
+    
+    /**
      * Initialize WordPress hooks
      */
     private function init_hooks() {
@@ -64,6 +178,15 @@ class Clarity_AWS_GHL_Courses_Admin {
         add_action('wp_ajax_clarity_get_course_lessons', array($this, 'ajax_get_course_lessons'));
         add_action('wp_ajax_clarity_assign_lesson_to_course', array($this, 'ajax_assign_lesson_to_course'));
         add_action('wp_ajax_clarity_remove_lesson_from_course', array($this, 'ajax_remove_lesson_from_course'));
+        
+        // Database migration
+        add_action('wp_ajax_clarity_run_migration', array($this, 'ajax_run_migration'));
+        
+        // Check for missing database columns and show admin notice
+        add_action('admin_notices', array($this, 'check_database_columns'));
+        
+        // Fix database columns on admin init
+        add_action('admin_init', array($this, 'ensure_database_columns'));
     }
     
     /**
@@ -117,6 +240,22 @@ class Clarity_AWS_GHL_Courses_Admin {
             strpos($hook, 'clarity-aws-ghl-analytics') === false) {
             return;
         }
+        
+        // Enqueue Bootstrap Icons CSS for admin
+        wp_enqueue_style(
+            'bootstrap-icons',
+            'https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css',
+            array(),
+            '1.11.0'
+        );
+        
+        // Enqueue admin CSS
+        wp_enqueue_style(
+            'clarity-courses-admin-css',
+            CLARITY_AWS_GHL_PLUGIN_URL . 'admin/css/admin.css',
+            array(),
+            CLARITY_AWS_GHL_VERSION
+        );
         
         wp_enqueue_script(
             'clarity-courses-admin',
@@ -174,6 +313,9 @@ class Clarity_AWS_GHL_Courses_Admin {
                     </button>
                     <button type="button" class="button" id="bulk-actions-btn">
                         <?php _e('Bulk Actions', 'clarity-aws-ghl'); ?>
+                    </button>
+                    <button type="button" class="button button-secondary" id="run-migration-btn">
+                        <?php _e('Fix Database', 'clarity-aws-ghl'); ?>
                     </button>
                 </div>
                 
@@ -280,6 +422,33 @@ class Clarity_AWS_GHL_Courses_Admin {
                                     <span class="description"><?php _e('Leave empty to use tier default', 'clarity-aws-ghl'); ?></span></td>
                                 </tr>
                                 <tr>
+                                    <th scope="row"><?php _e('Icon', 'clarity-aws-ghl'); ?></th>
+                                    <td>
+                                        <div class="icon-selector-wrapper">
+                                            <input type="hidden" name="course_icon" id="course_icon" value="bi-mortarboard">
+                                            <div class="icon-dropdown" id="icon_dropdown">
+                                                <div class="icon-dropdown-selected" data-dropdown="icon_dropdown">
+                                                    <i class="bi bi-mortarboard" id="selected_icon_preview"></i>
+                                                    <span class="selected-text">Graduation Cap</span>
+                                                    <i class="bi bi-chevron-down dropdown-arrow"></i>
+                                                </div>
+                                                <div class="icon-dropdown-options" style="display: none;">
+                                                    <?php
+                                                    $icons = $this->get_course_icons();
+                                                    foreach ($icons as $icon_class => $icon_name):
+                                                    ?>
+                                                        <div class="icon-option-item" data-value="<?php echo esc_attr($icon_class); ?>" data-name="<?php echo esc_html($icon_name); ?>" data-dropdown="icon_dropdown">
+                                                            <i class="bi <?php echo esc_attr($icon_class); ?>"></i>
+                                                            <span><?php echo esc_html($icon_name); ?></span>
+                                                        </div>
+                                                    <?php endforeach; ?>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <span class="description"><?php _e('Choose an icon for this course', 'clarity-aws-ghl'); ?></span>
+                                    </td>
+                                </tr>
+                                <tr>
                                     <th scope="row"><?php _e('Status', 'clarity-aws-ghl'); ?></th>
                                     <td>
                                         <select name="course_status">
@@ -326,6 +495,33 @@ class Clarity_AWS_GHL_Courses_Admin {
                                     <td>
                                         <input type="number" name="course_price" step="0.01" min="0" class="regular-text" placeholder="0.00">
                                         <p class="description"><?php _e('Enter price in dollars (e.g., 497.00 for $497)', 'clarity-aws-ghl'); ?></p>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th scope="row"><?php _e('Icon', 'clarity-aws-ghl'); ?></th>
+                                    <td>
+                                        <div class="icon-selector-wrapper">
+                                            <input type="hidden" name="course_icon" id="edit_course_icon" value="bi-mortarboard">
+                                            <div class="icon-dropdown" id="edit_icon_dropdown">
+                                                <div class="icon-dropdown-selected" data-dropdown="edit_icon_dropdown">
+                                                    <i class="bi bi-mortarboard" id="edit_selected_icon_preview"></i>
+                                                    <span class="selected-text">Graduation Cap</span>
+                                                    <i class="bi bi-chevron-down dropdown-arrow"></i>
+                                                </div>
+                                                <div class="icon-dropdown-options" style="display: none;">
+                                                    <?php
+                                                    $icons = $this->get_course_icons();
+                                                    foreach ($icons as $icon_class => $icon_name):
+                                                    ?>
+                                                        <div class="icon-option-item" data-value="<?php echo esc_attr($icon_class); ?>" data-name="<?php echo esc_html($icon_name); ?>" data-dropdown="edit_icon_dropdown">
+                                                            <i class="bi <?php echo esc_attr($icon_class); ?>"></i>
+                                                            <span><?php echo esc_html($icon_name); ?></span>
+                                                        </div>
+                                                    <?php endforeach; ?>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <span class="description"><?php _e('Choose an icon for this course', 'clarity-aws-ghl'); ?></span>
                                     </td>
                                 </tr>
                                 <tr>
@@ -797,6 +993,7 @@ class Clarity_AWS_GHL_Courses_Admin {
         <?php
     }
     
+    
     /**
      * Helper methods for data retrieval
      */
@@ -896,6 +1093,11 @@ class Clarity_AWS_GHL_Courses_Admin {
         } else {
             $tier_pricing = array(1 => 0, 2 => 497, 3 => 1997);
             $course_data['course_price'] = $tier_pricing[$course_data['course_tier']];
+        }
+        
+        // Set course icon
+        if (!empty($_POST['course_icon'])) {
+            $course_data['course_icon'] = sanitize_text_field($_POST['course_icon']);
         }
         
         $result = $wpdb->insert($tables['courses'], $course_data);
@@ -1187,9 +1389,13 @@ class Clarity_AWS_GHL_Courses_Admin {
      * Update course
      */
     public function ajax_update_course() {
+        error_log('UPDATE COURSE: Function called');
+        error_log('UPDATE COURSE: POST data: ' . print_r($_POST, true));
+        
         check_ajax_referer('clarity_courses_nonce', 'nonce');
         
         if (!current_user_can('manage_options')) {
+            error_log('UPDATE COURSE: Insufficient permissions');
             wp_send_json_error('Insufficient permissions');
         }
         
@@ -1198,10 +1404,15 @@ class Clarity_AWS_GHL_Courses_Admin {
         $course_description = sanitize_textarea_field($_POST['course_description']);
         $course_price = floatval($_POST['course_price']);
         $course_status = sanitize_text_field($_POST['course_status']);
+        $course_icon = sanitize_text_field($_POST['course_icon']);
         
         if (empty($course_title)) {
+            error_log('UPDATE COURSE: Course title is empty');
             wp_send_json_error('Course title is required');
         }
+        
+        error_log('UPDATE COURSE: Course ID: ' . $course_id);
+        error_log('UPDATE COURSE: Course Title: ' . $course_title);
         
         global $wpdb;
         $db_courses = new Clarity_AWS_GHL_Database_Courses();
@@ -1211,8 +1422,12 @@ class Clarity_AWS_GHL_Courses_Admin {
             'course_title' => $course_title,
             'course_description' => $course_description,
             'course_price' => $course_price,
-            'course_status' => $course_status
+            'course_status' => $course_status,
+            'course_icon' => $course_icon
         );
+        
+        error_log('UPDATE COURSE: Course data: ' . print_r($course_data, true));
+        error_log('UPDATE COURSE: Table name: ' . $tables['courses']);
         
         $result = $wpdb->update(
             $tables['courses'],
@@ -1220,11 +1435,110 @@ class Clarity_AWS_GHL_Courses_Admin {
             array('id' => $course_id)
         );
         
+        error_log('UPDATE COURSE: Update result: ' . print_r($result, true));
+        error_log('UPDATE COURSE: Last error: ' . $wpdb->last_error);
+        
         if ($result === false) {
+            error_log('UPDATE COURSE: Update failed');
             wp_send_json_error('Failed to update course');
         }
         
+        error_log('UPDATE COURSE: Success');
         wp_send_json_success(array('message' => 'Course updated successfully'));
+    }
+    
+    /**
+     * Run database migration manually
+     */
+    public function ajax_run_migration() {
+        check_ajax_referer('clarity_courses_nonce', 'nonce');
+        
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Insufficient permissions');
+        }
+        
+        $db_courses = new Clarity_AWS_GHL_Database_Courses();
+        $db_courses->create_course_tables(); // This will run migrations
+        
+        wp_send_json_success(array('message' => 'Migration completed successfully'));
+    }
+    
+    /**
+     * Check database columns and show admin notice if missing
+     */
+    public function check_database_columns() {
+        global $wpdb;
+        
+        $courses_table = $wpdb->prefix . 'clarity_courses';
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM {$courses_table} LIKE 'course_icon'");
+        
+        if (empty($column_exists)) {
+            echo '<div class="notice notice-error is-dismissible">';
+            echo '<p><strong>Database Issue:</strong> The course_icon column is missing. ';
+            echo '<a href="#" onclick="fixDatabase(); return false;">Click here to fix it automatically</a></p>';
+            echo '<script>
+                function fixDatabase() {
+                    if (confirm("This will add the missing database column. Continue?")) {
+                        jQuery.post(ajaxurl, {
+                            action: "clarity_run_migration",
+                            nonce: "' . wp_create_nonce('clarity_courses_nonce') . '"
+                        }, function(response) {
+                            if (response.success) {
+                                alert("Database fixed! Please refresh the page.");
+                                location.reload();
+                            } else {
+                                alert("Fix failed: " + response.data);
+                            }
+                        });
+                    }
+                }
+            </script>';
+            echo '</div>';
+        }
+    }
+    
+    /**
+     * Ensure database columns exist - runs on every admin page load
+     */
+    public function ensure_database_columns() {
+        global $wpdb;
+        
+        $courses_table = $wpdb->prefix . 'clarity_courses';
+        
+        // Check if table exists first
+        $table_exists = $wpdb->get_var("SHOW TABLES LIKE '{$courses_table}'");
+        if (!$table_exists) {
+            error_log('ENSURE_DB: Courses table does not exist');
+            return;
+        }
+        
+        // Check if course_icon column exists
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM {$courses_table} LIKE 'course_icon'");
+        
+        if (empty($column_exists)) {
+            error_log('ENSURE_DB: course_icon column missing, adding it now...');
+            
+            // Add course_icon column
+            $result = $wpdb->query("ALTER TABLE {$courses_table} ADD COLUMN course_icon varchar(50) NOT NULL DEFAULT 'bi-mortarboard' AFTER course_price");
+            
+            if ($result !== false) {
+                error_log('ENSURE_DB: Successfully added course_icon column');
+                
+                // Update existing courses with default icons
+                $wpdb->query("UPDATE {$courses_table} SET course_icon = CASE 
+                    WHEN course_tier = 1 THEN 'bi-mortarboard'
+                    WHEN course_tier = 2 THEN 'bi-briefcase' 
+                    WHEN course_tier = 3 THEN 'bi-star'
+                    ELSE 'bi-mortarboard'
+                END WHERE course_icon = 'bi-mortarboard'");
+                
+                error_log('ENSURE_DB: Updated existing courses with tier-appropriate icons');
+            } else {
+                error_log('ENSURE_DB: Failed to add course_icon column. Error: ' . $wpdb->last_error);
+            }
+        } else {
+            error_log('ENSURE_DB: course_icon column already exists');
+        }
     }
     
     /**

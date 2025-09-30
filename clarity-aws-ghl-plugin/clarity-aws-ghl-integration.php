@@ -466,6 +466,9 @@ class Clarity_AWS_GHL_Integration {
         $db_courses = new Clarity_AWS_GHL_Database_Courses();
         $db_courses->create_course_tables();
         
+        // Force database migration to add missing columns
+        $this->force_database_migration();
+        
         // Set default options
         $this->set_default_options();
         
@@ -477,6 +480,30 @@ class Clarity_AWS_GHL_Integration {
         
         // Log activation
         error_log('Clarity AWS GHL Integration plugin activated');
+    }
+    
+    /**
+     * Force database migration to add missing columns
+     */
+    private function force_database_migration() {
+        global $wpdb;
+        
+        $courses_table = $wpdb->prefix . 'clarity_courses';
+        
+        // Check if course_icon column exists
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM {$courses_table} LIKE 'course_icon'");
+        
+        if (empty($column_exists)) {
+            // Add course_icon column
+            $result = $wpdb->query("ALTER TABLE {$courses_table} ADD COLUMN course_icon varchar(50) NOT NULL DEFAULT 'bi-mortarboard' AFTER course_price");
+            error_log('Force migration: Added course_icon column. Result: ' . $result);
+            
+            if ($result === false) {
+                error_log('Force migration: Failed to add course_icon column. Error: ' . $wpdb->last_error);
+            }
+        } else {
+            error_log('Force migration: course_icon column already exists');
+        }
     }
     
     /**
