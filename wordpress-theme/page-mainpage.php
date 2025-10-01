@@ -118,7 +118,7 @@ get_header(); ?>
               <h1><?php echo esc_html($hero_title); ?></h1>
               <p><?php echo esc_html($hero_description); ?></p>
               <div class="hero-buttons">
-                <a href="/student-registration/" class="btn btn-primary">Start Learning Free</a>
+                <a href="/register/" class="btn btn-primary">Start Learning Free</a>
                 <a href="#courses" class="btn btn-outline">Explore Courses</a>
               </div>
               <div class="hero-stats">
@@ -192,7 +192,7 @@ get_header(); ?>
               </ul>
 
               <div class="buttons">
-                <a href="/student-registration/" class="btn btn-primary">Start Your Journey</a>
+                <a href="/register/" class="btn btn-primary">Start Your Journey</a>
                 <a href="#courses" class="btn btn-outline">Learn More</a>
               </div>
             </div>
