@@ -34,6 +34,9 @@
      * Initialize course management functionality
      */
     function initCourseManagement() {
+        // Initialize image upload functionality
+        initImageUpload();
+        
         // Add course button
         $('#add-course-btn').on('click', function() {
             $('#add-course-modal').show();
@@ -282,7 +285,8 @@
             course_tier: $form.find('[name="course_tier"]').val(),
             course_price: $form.find('[name="course_price"]').val(),
             course_status: $form.find('[name="course_status"]').val(),
-            course_icon: $form.find('[name="course_icon"]').val()
+            course_icon: $form.find('[name="course_icon"]').val(),
+            featured_image: $('#featured_image').val()
         };
         
         $button.prop('disabled', true).text(clarityCoursesAjax.strings.processing);
@@ -1079,6 +1083,18 @@
                     $('#edit-course-form [name="course_status"]').val(course.course_status);
                     $('#edit-course-form [name="course_icon"]').val(course.course_icon || 'bi-mortarboard');
                     
+                    // Handle featured image - show existing image in preview
+                    if (course.featured_image) {
+                        $('#edit_featured_image').val(course.featured_image);
+                        $('#edit_image_preview img').attr('src', course.featured_image);
+                        $('#edit_image_preview').css('display', 'block').show();
+                        console.log('📸 Loaded existing course image for preview');
+                    } else {
+                        $('#edit_featured_image').val('');
+                        $('#edit_image_preview').hide();
+                        console.log('📸 No existing image for this course');
+                    }
+                    
                     // Update custom dropdown display
                     var iconClass = course.course_icon || 'bi-mortarboard';
                     var iconOption = $('#edit_icon_dropdown .icon-option-item[data-value="' + iconClass + '"]');
@@ -1113,6 +1129,9 @@
             return;
         }
         
+        var featuredImageValue = $('#edit_featured_image').val();
+        console.log('Featured image value being sent:', featuredImageValue ? (featuredImageValue.length > 100 ? 'Base64 data (' + featuredImageValue.length + ' chars)' : featuredImageValue) : 'EMPTY');
+        
         var formData = {
             action: 'clarity_update_course',
             nonce: clarityCoursesAjax.nonce,
@@ -1121,7 +1140,8 @@
             course_description: $form.find('[name="course_description"]').val(),
             course_price: $form.find('[name="course_price"]').val(),
             course_status: $form.find('[name="course_status"]').val(),
-            course_icon: $('#edit_course_icon').val() || 'bi-mortarboard'
+            course_icon: $('#edit_course_icon').val() || 'bi-mortarboard',
+            featured_image: featuredImageValue
         };
         
         console.log('Form data collected:', formData);
@@ -1183,6 +1203,106 @@
             error: function() {
                 showMessage('Ajax error occurred', 'error');
             }
+        });
+    }
+    
+    /**
+     * Initialize image upload functionality with base64 conversion
+     */
+    function initImageUpload() {
+        // Handle browse button click to trigger file input
+        $(document).on('click', '#browse_image_btn, #edit_browse_image_btn', function() {
+            var buttonId = $(this).attr('id');
+            var isEdit = buttonId.includes('edit');
+            var fileInputId = isEdit ? '#edit_featured_image_file' : '#featured_image_file';
+            
+            console.log('🔘 Browse button clicked:', buttonId);
+            console.log('🔘 isEdit detected:', isEdit);
+            console.log('🔘 Will trigger file input:', fileInputId);
+            
+            $(fileInputId).click();
+        });
+        
+        // Handle file selection for both create and edit modals
+        $(document).on('change', '#featured_image_file, #edit_featured_image_file', function() {
+            var file = this.files[0];
+            var fileInputId = $(this).attr('id');
+            var isEdit = fileInputId.includes('edit');
+            var previewId = isEdit ? '#edit_image_preview' : '#image_preview';
+            var hiddenInputId = isEdit ? '#edit_featured_image' : '#featured_image';
+            
+            console.log('🔍 File input clicked:', fileInputId);
+            console.log('🔍 isEdit detected:', isEdit);
+            console.log('🔍 Hidden input will be:', hiddenInputId);
+            
+            if (file) {
+                // Validate file type
+                if (!file.type.startsWith('image/')) {
+                    alert('Please select an image file (JPG, PNG, GIF, WebP)');
+                    return;
+                }
+                
+                // Validate file size (5MB max)
+                if (file.size > 5 * 1024 * 1024) {
+                    alert('File size must be less than 5MB');
+                    return;
+                }
+                
+                // Convert to base64
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    var base64 = e.target.result;
+                    
+                    console.log('🎯 Base64 conversion successful!');
+                    console.log('📊 Base64 length:', base64.length, 'characters');
+                    console.log('📝 First 100 chars:', base64.substring(0, 100));
+                    
+                    // Show preview
+                    console.log('🖼️ Setting preview image src for:', previewId);
+                    console.log('🔍 Preview element exists:', $(previewId).length);
+                    console.log('🔍 Preview element CSS display before show():', $(previewId).css('display'));
+                    
+                    $(previewId).find('img').attr('src', base64);
+                    
+                    // Force show with multiple methods
+                    $(previewId).show();
+                    $(previewId).css('display', 'block');
+                    $(previewId).css('visibility', 'visible');
+                    
+                    console.log('🔍 Preview element CSS display after show():', $(previewId).css('display'));
+                    console.log('🔍 Preview parent visibility:', $(previewId).parent().is(':visible'));
+                    console.log('🔍 Preview modal visibility:', $('#edit-course-modal').is(':visible'));
+                    console.log('👁️ Preview should now be visible:', $(previewId).is(':visible'));
+                    console.log('🔍 Preview element HTML:', $(previewId)[0]);
+                    
+                    // Store base64 in hidden input
+                    $(hiddenInputId).val(base64);
+                    
+                    console.log('✅ Base64 stored in hidden input:', hiddenInputId);
+                    console.log('🔍 Hidden input value length:', $(hiddenInputId).val().length);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+        
+        // Handle remove image button
+        $(document).on('click', '.remove-image-btn', function() {
+            var isEdit = $(this).closest('.image-upload-container').find('[id*="edit"]').length > 0;
+            var previewId = isEdit ? '#edit_image_preview' : '#image_preview';
+            var hiddenInputId = isEdit ? '#edit_featured_image' : '#featured_image';
+            var fileInputId = isEdit ? '#edit_featured_image_file' : '#featured_image_file';
+            
+            // Clear preview
+            $(previewId).hide();
+            $(previewId).find('img').attr('src', '');
+            
+            // Clear hidden input
+            $(hiddenInputId).val('');
+            
+            // Clear file input
+            $(fileInputId).val('');
+            
+            console.log('Image removed');
         });
     }
     
