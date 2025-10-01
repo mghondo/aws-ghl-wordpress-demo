@@ -182,6 +182,9 @@ class Clarity_AWS_GHL_Courses_Admin {
         // Database migration
         add_action('wp_ajax_clarity_run_migration', array($this, 'ajax_run_migration'));
         
+        // File upload handler
+        add_action('wp_ajax_clarity_upload_course_image', array($this, 'ajax_upload_course_image'));
+        
         // Check for missing database columns and show admin notice
         add_action('admin_notices', array($this, 'check_database_columns'));
         
@@ -248,6 +251,9 @@ class Clarity_AWS_GHL_Courses_Admin {
             array(),
             '1.11.0'
         );
+        
+        // Add simple image preview functionality
+        $this->enqueue_admin_scripts();
         
         // Enqueue admin CSS
         wp_enqueue_style(
@@ -342,7 +348,7 @@ class Clarity_AWS_GHL_Courses_Admin {
                                     <strong><?php echo esc_html($course->course_title); ?></strong>
                                     <div class="row-actions">
                                         <span class="edit">
-                                            <a href="#" class="edit-course" data-course-id="<?php echo esc_attr($course->id); ?>">
+                                            <a href="#" class="edit-course" data-course-id="<?php echo esc_attr($course->id); ?>" data-featured-image="<?php echo esc_attr($course->featured_image); ?>">
                                                 <?php _e('Edit', 'clarity-aws-ghl'); ?>
                                             </a> |
                                         </span>
@@ -449,6 +455,26 @@ class Clarity_AWS_GHL_Courses_Admin {
                                     </td>
                                 </tr>
                                 <tr>
+                                    <th scope="row"><?php _e('Featured Image', 'clarity-aws-ghl'); ?></th>
+                                    <td>
+                                        <div class="image-upload-container">
+                                            <div class="image-upload-wrapper">
+                                                <button type="button" class="button button-secondary browse-image-btn" id="edit_browse_image_btn">
+                                                    <i class="dashicons dashicons-format-image" style="margin-right: 5px;"></i>
+                                                    <?php _e('Browse for Image', 'clarity-aws-ghl'); ?>
+                                                </button>
+                                                <p class="description"><?php _e('Recommended: 1920x400px, JPG/PNG, max 5MB', 'clarity-aws-ghl'); ?></p>
+                                                <input type="file" id="edit_featured_image_file" name="edit_featured_image_file" accept="image/*" style="display: none;">
+                                            </div>
+                                            <div class="image-preview" id="edit_image_preview" style="margin-top: 10px; display: none;">
+                                                <img src="" alt="Featured Image" style="max-width: 300px; height: auto; border-radius: 8px; border: 1px solid #ddd;">
+                                                <button type="button" class="remove-image-btn" style="margin-top: 10px;"><?php _e('Remove Image', 'clarity-aws-ghl'); ?></button>
+                                            </div>
+                                            <input type="hidden" name="featured_image" id="edit_featured_image" value="">
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
                                     <th scope="row"><?php _e('Status', 'clarity-aws-ghl'); ?></th>
                                     <td>
                                         <select name="course_status">
@@ -461,8 +487,8 @@ class Clarity_AWS_GHL_Courses_Admin {
                         </form>
                     </div>
                     <div class="clarity-modal-footer">
-                        <button type="button" class="button button-primary" id="save-course-btn">
-                            <?php _e('Create Course', 'clarity-aws-ghl'); ?>
+                        <button type="button" class="button button-primary" id="update-course-btn">
+                            <?php _e('Update Course', 'clarity-aws-ghl'); ?>
                         </button>
                         <button type="button" class="button clarity-modal-close">
                             <?php _e('Cancel', 'clarity-aws-ghl'); ?>
@@ -522,6 +548,32 @@ class Clarity_AWS_GHL_Courses_Admin {
                                             </div>
                                         </div>
                                         <span class="description"><?php _e('Choose an icon for this course', 'clarity-aws-ghl'); ?></span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th scope="row"><?php _e('Featured Image', 'clarity-aws-ghl'); ?></th>
+                                    <td>
+                                        <div class="image-upload-container">
+                                            <div class="image-upload-wrapper">
+                                                <button type="button" class="button button-secondary browse-image-btn" id="edit_browse_image_btn">
+                                                    <i class="dashicons dashicons-format-image" style="margin-right: 5px;"></i>
+                                                    <?php _e('Browse for Image', 'clarity-aws-ghl'); ?>
+                                                </button>
+                                                <p class="description"><?php _e('Recommended: 1920x400px, JPG/PNG, max 5MB', 'clarity-aws-ghl'); ?></p>
+                                                <input type="file" id="edit_featured_image_file" name="edit_featured_image_file" accept="image/*" style="display: none;">
+                                            </div>
+                                            <div class="image-preview" id="edit_image_preview" style="margin-top: 10px; display: none;">
+                                                <img src="" alt="Featured Image" style="max-width: 300px; height: auto; border-radius: 8px; border: 1px solid #ddd;">
+                                                <button type="button" class="remove-image-btn" style="margin-top: 10px;"><?php _e('Remove Image', 'clarity-aws-ghl'); ?></button>
+                                            </div>
+                                            <input type="hidden" name="featured_image" id="edit_featured_image" value="">
+                                            <div class="upload-progress" id="upload_progress" style="display: none; margin-top: 10px;">
+                                                <div class="progress-bar">
+                                                    <div class="progress-fill" style="width: 0%;"></div>
+                                                </div>
+                                                <p class="upload-status"><?php _e('Uploading...', 'clarity-aws-ghl'); ?></p>
+                                            </div>
+                                        </div>
                                     </td>
                                 </tr>
                                 <tr>
@@ -1084,7 +1136,8 @@ class Clarity_AWS_GHL_Courses_Admin {
             'course_description' => sanitize_textarea_field($_POST['course_description']),
             'course_tier' => intval($_POST['course_tier']),
             'course_status' => sanitize_text_field($_POST['course_status']),
-            'course_order' => 999
+            'course_order' => 999,
+            'featured_image' => !empty($_POST['featured_image']) ? sanitize_textarea_field($_POST['featured_image']) : ''
         );
         
         // Set price based on tier or custom price
@@ -1423,7 +1476,8 @@ class Clarity_AWS_GHL_Courses_Admin {
             'course_description' => $course_description,
             'course_price' => $course_price,
             'course_status' => $course_status,
-            'course_icon' => $course_icon
+            'course_icon' => $course_icon,
+            'featured_image' => !empty($_POST['featured_image']) ? sanitize_textarea_field($_POST['featured_image']) : ''
         );
         
         error_log('UPDATE COURSE: Course data: ' . print_r($course_data, true));
@@ -1846,5 +1900,45 @@ class Clarity_AWS_GHL_Courses_Admin {
             return 'vimeo';
         }
         return 'other';
+    }
+    
+    /**
+     * Simple image preview scripts
+     */
+    public function enqueue_admin_scripts() {
+        wp_add_inline_script('jquery', '
+            jQuery(document).ready(function($) {
+                // Image preview functionality
+                function showImagePreview(input, preview) {
+                    var url = $(input).val();
+                    if (url && (url.match(/\.(jpeg|jpg|gif|png|webp)$/i) || url.includes("unsplash.com") || url.includes("images."))) {
+                        $(preview).find("img").attr("src", url);
+                        $(preview).show();
+                    } else {
+                        $(preview).hide();
+                    }
+                }
+                
+                // Preview on URL input change
+                $(document).on("input blur", "#featured_image, #edit_featured_image", function() {
+                    var isEdit = $(this).attr("id").startsWith("edit_");
+                    var preview = isEdit ? $("#edit_image_preview") : $("#image_preview");
+                    showImagePreview(this, preview);
+                });
+                
+                // Show existing image when editing course
+                $(document).on("click", ".edit-course", function() {
+                    var featuredImage = $(this).data("featured-image");
+                    $("#edit_featured_image").val(featuredImage || "");
+                    showImagePreview($("#edit_featured_image"), $("#edit_image_preview"));
+                });
+                
+                // Clear preview when adding new course
+                $(document).on("click", "#add-course-btn", function() {
+                    $("#featured_image").val("");
+                    $("#image_preview").hide();
+                });
+            });
+        ');
     }
 }

@@ -123,7 +123,17 @@ if (class_exists('Clarity_AWS_GHL_Course_Manager')) {
 
 <div class="course-viewer-container">
     <!-- Course Header -->
-    <div class="course-header">
+    <div class="course-header" <?php if (!empty($course->featured_image)): ?>style="background-image: url('<?php 
+        // Handle both URLs and base64 data
+        if (strpos($course->featured_image, 'data:image/') === 0) {
+            // Base64 data - output directly
+            echo $course->featured_image; 
+        } else {
+            // Regular URL - escape it
+            echo esc_url($course->featured_image); 
+        }
+    ?>');"<?php endif; ?>>
+        <div class="course-header-overlay">
         <div class="container">
             <div class="course-header-content">
                 <h1 class="course-title">
@@ -148,6 +158,7 @@ if (class_exists('Clarity_AWS_GHL_Course_Manager')) {
                     </div>
                 </div>
             </div>
+        </div>
         </div>
     </div>
     
@@ -398,11 +409,30 @@ if (class_exists('Clarity_AWS_GHL_Course_Manager')) {
 .course-header {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
-    padding: 40px 0;
+    position: relative;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+/* Overlay for better text readability when image is present */
+.course-header-overlay {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.85) 0%, rgba(118, 75, 162, 0.85) 100%);
+    padding: 60px 0;
+    position: relative;
+    z-index: 1;
+}
+
+/* When no image, don't show overlay gradient */
+.course-header:not([style*="background-image"]) .course-header-overlay {
+    background: transparent;
+    padding: 60px 0;
 }
 
 .course-header-content {
     text-align: center;
+    position: relative;
+    z-index: 2;
 }
 
 .course-title {

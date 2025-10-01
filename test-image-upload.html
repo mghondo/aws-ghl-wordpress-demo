@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Image Upload - Base64 Conversion</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        .image-dropzone {
+            border: 2px dashed #ccc;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            margin: 20px 0;
+        }
+        .image-preview {
+            margin-top: 20px;
+        }
+        .image-preview img {
+            max-width: 300px;
+            height: auto;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .remove-image-btn {
+            margin-top: 10px;
+            padding: 5px 10px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .output {
+            margin-top: 20px;
+            padding: 10px;
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Course Image Upload - Base64 Conversion</h1>
+    <p>This simulates the exact functionality we just implemented for course images.</p>
+    
+    <div class="image-dropzone" id="test_dropzone">
+        <div class="dropzone-content">
+            <p>🖼️ Drag & drop image here or click to browse</p>
+            <p><small>Recommended: 1920x400px, JPG/PNG, max 5MB</small></p>
+        </div>
+        <input type="file" id="test_image_file" accept="image/*" style="display: none;">
+    </div>
+    
+    <div class="image-preview" id="test_preview" style="display: none;">
+        <img src="" alt="Preview">
+        <br>
+        <button type="button" class="remove-image-btn">Remove Image</button>
+    </div>
+    
+    <div class="output" id="base64_output" style="display: none;">
+        <strong>Base64 Data (first 200 chars):</strong><br>
+        <span id="base64_text"></span>
+    </div>
+    
+    <script>
+        $(document).ready(function() {
+            var base64Data = '';
+            
+            // Handle dropzone click
+            $('#test_dropzone').on('click', function() {
+                $('#test_image_file').click();
+            });
+            
+            // Handle file selection
+            $('#test_image_file').on('change', function() {
+                var file = this.files[0];
+                
+                if (file) {
+                    // Validate file type
+                    if (!file.type.startsWith('image/')) {
+                        alert('Please select an image file (JPG, PNG, GIF, WebP)');
+                        return;
+                    }
+                    
+                    // Validate file size (5MB max)
+                    if (file.size > 5 * 1024 * 1024) {
+                        alert('File size must be less than 5MB');
+                        return;
+                    }
+                    
+                    console.log('Processing file:', file.name, 'Size:', file.size, 'Type:', file.type);
+                    
+                    // Convert to base64
+                    var reader = new FileReader();
+                    reader.onload = function(e) {
+                        base64Data = e.target.result;
+                        
+                        // Show preview
+                        $('#test_preview img').attr('src', base64Data);
+                        $('#test_preview').show();
+                        
+                        // Show base64 data (truncated)
+                        $('#base64_text').text(base64Data.substring(0, 200) + '...');
+                        $('#base64_output').show();
+                        
+                        console.log('✅ Image converted to base64');
+                        console.log('📊 Base64 length:', base64Data.length, 'characters');
+                        console.log('🎯 Ready to save to database!');
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+            
+            // Handle remove image
+            $('.remove-image-btn').on('click', function() {
+                $('#test_preview').hide();
+                $('#test_preview img').attr('src', '');
+                $('#base64_output').hide();
+                $('#test_image_file').val('');
+                base64Data = '';
+                console.log('🗑️ Image removed');
+            });
+            
+            console.log('🚀 Test page loaded - drag and drop an image to test!');
+        });
+    </script>
+</body>
+</html>
