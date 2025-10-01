@@ -8,6 +8,19 @@
 
 get_header();
 
+
+// if (is_user_logged_in()) {
+//     $current_user = wp_get_current_user();
+//     echo '<div style="background: blue; padding: 10px; margin: 10px;">
+//         Logged in as: ' . $current_user->user_login . ' (User ID: ' . $current_user->ID . ')
+//     </div>';
+// } else {
+//     echo '<div style="background: red; padding: 10px; margin: 10px; color: white;">
+//         NOT LOGGED IN - Go to <a href="/wp-login.php" style="color: white; text-decoration: underline;">Login Page</a>
+//     </div>';
+// }
+
+
 // Get course slug from URL, query var, or query parameter
 $course_slug = '';
 
@@ -77,12 +90,19 @@ if (class_exists('Clarity_AWS_GHL_Course_Manager')) {
         $enrollment = $course_manager->get_user_enrollment($user_id, $course->id);
         $is_enrolled = !empty($enrollment);
         
-        if ($is_enrolled) {
-            $user_progress = $course_manager->get_user_course_progress($user_id, $course->id);
-            foreach ($user_progress as $progress) {
-                if ($progress->is_completed) {
-                    $completed_lessons++;
-                }
+        // Get progress records directly from database (not dependent on enrollment)
+        global $wpdb;
+        $progress_table = $wpdb->prefix . 'clarity_user_progress';
+        $user_progress = $wpdb->get_results($wpdb->prepare(
+            "SELECT * FROM {$progress_table} 
+            WHERE user_id = %d AND course_id = %d",
+            $user_id, $course->id
+        ));
+        
+        // Count completed lessons
+        foreach ($user_progress as $progress) {
+            if ($progress->is_completed) {
+                $completed_lessons++;
             }
         }
     }
@@ -110,7 +130,6 @@ if (class_exists('Clarity_AWS_GHL_Course_Manager')) {
                     <i class="bi <?php echo esc_attr($course->course_icon ?: 'bi-mortarboard'); ?>"></i>
                     <?php echo esc_html($course->course_title); ?>
                 </h1>
-                <p class="course-description"><?php echo esc_html($course->course_description); ?></p>
                 
                 <div class="course-meta">
                     <span class="tier-badge">Tier <?php echo esc_html($course->course_tier); ?></span>
@@ -132,10 +151,17 @@ if (class_exists('Clarity_AWS_GHL_Course_Manager')) {
         </div>
     </div>
     
+    <!-- Course Description Section -->
+    <div class="course-description-section">
+        <div class="container">
+            <p class="course-description"><?php echo esc_html($course->course_description); ?></p>
+        </div>
+    </div>
+    
     <!-- Course Lessons Section -->
     <div class="course-lessons-section">
         <div class="container">
-            <h2 class="section-title">Course Lessons</h2>
+            <h2 class="section-title">Lessons</h2>
             
             <?php if ($is_admin): ?>
                 <!-- Admin Testing Controls -->
@@ -182,7 +208,7 @@ if (class_exists('Clarity_AWS_GHL_Course_Manager')) {
                     if ($is_admin && !$user_id) {
                         $is_available = true;
                         $is_locked = false;
-                    } elseif ($is_enrolled || $is_admin) {
+                    } elseif ($user_id) { // Allow any logged-in user to see progress (not just enrolled)
                         // Check if this lesson is completed
                         foreach ($user_progress as $progress) {
                             if ($progress->lesson_id == $lesson->id && $progress->is_completed) {
@@ -191,10 +217,11 @@ if (class_exists('Clarity_AWS_GHL_Course_Manager')) {
                             }
                         }
                         
-                        // First lesson is always available
+                        // First lesson is always unlocked
                         if ($lesson_number === 1) {
-                            $is_available = !$is_completed;
                             $is_locked = false;
+                            // Available if not completed, but still accessible if completed
+                            $is_available = !$is_completed;
                         } else {
                             // Check if previous lesson is completed
                             $prev_lesson_completed = false;
@@ -208,11 +235,11 @@ if (class_exists('Clarity_AWS_GHL_Course_Manager')) {
                                 }
                             }
                             
-                            if ($prev_lesson_completed && !$is_completed) {
-                                $is_available = true;
+                            // Unlock if previous lesson is completed OR if this lesson is already completed
+                            if ($prev_lesson_completed || $is_completed) {
                                 $is_locked = false;
-                            } elseif ($is_completed) {
-                                $is_locked = false;
+                                // Available for first time viewing if not completed
+                                $is_available = !$is_completed;
                             }
                         }
                     }
@@ -269,8 +296,8 @@ if (class_exists('Clarity_AWS_GHL_Course_Manager')) {
                                         data-course-id="<?php echo $course->id; ?>"
                                         data-is-completed="1"
                                         onclick="openLessonModal(this)">
-                                    <i class="bi bi-check-circle"></i>
-                                    Complete
+                                    <i class="bi bi-play-circle"></i>
+                                    Rewatch
                                 </button>
                             <?php elseif ($is_available): ?>
                                 <button class="lesson-btn start-btn start-lesson-btn"
@@ -388,10 +415,21 @@ if (class_exists('Clarity_AWS_GHL_Course_Manager')) {
     margin-right: 0.5rem;
 }
 
-.course-description {
-    font-size: 1.1rem;
-    margin-bottom: 1.5rem;
-    opacity: 0.9;
+/* Course Description Section (below header) */
+.course-description-section {
+    padding: 2rem 0 1rem;
+    background: white;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.course-description-section .course-description {
+    font-size: 1.2rem;
+    line-height: 1.8;
+    color: #555;
+    margin: 0;
+    text-align: center;
+    max-width: 800px;
+    margin: 0 auto;
 }
 
 .course-meta {
