@@ -19,7 +19,9 @@ wp_enqueue_script('jquery');
             <h3>Join Our Course Platform</h3>
             <p>Create your account to access our comprehensive learning system</p>
         </div>
-
+        <div class="clarity-card-footer">
+            <p>Already have an account? <a href="#" id="show-login-form">Sign in here</a></p>
+        </div>
         <?php if (isset($_GET['registration_error'])): ?>
             <div class="error-message">
                 <?php echo esc_html(urldecode($_GET['registration_error'])); ?>

@@ -1,431 +1,300 @@
 <?php
 /**
- * Template Name: Login Page
- * Description: Custom styled login page matching the app design
+ * Template Name: Student Login
  * 
- * @package Clarity_AWS_GHL
+ * Custom login page with WordPress authentication
  */
+
+if (!defined('ABSPATH')) {
+    exit;
+}
 
 // Redirect if already logged in
 if (is_user_logged_in()) {
-    wp_redirect(home_url('/course/'));
+    wp_redirect(home_url('/course/real-estate-foundations'));
     exit;
 }
 
 // Handle login form submission
-if (isset($_POST['login_submit'])) {
-    $username = sanitize_text_field($_POST['username']);
-    $password = $_POST['password'];
-    $remember = isset($_POST['remember']);
-    
-    $creds = array(
-        'user_login'    => $username,
-        'user_password' => $password,
-        'remember'      => $remember,
-    );
-    
-    $user = wp_signon($creds, false);
-    
-    if (is_wp_error($user)) {
-        $login_error = $user->get_error_message();
+$login_errors = array();
+
+if (isset($_POST['login_student'])) {
+    // Verify nonce
+    if (!wp_verify_nonce($_POST['login_nonce'], 'student_login')) {
+        $login_errors[] = 'Security check failed. Please try again.';
     } else {
-        // Successful login - redirect to course page
-        wp_redirect(home_url('/course/'));
-        exit;
+        // Sanitize inputs
+        $username_or_email = sanitize_text_field($_POST['username_or_email']);
+        $password = $_POST['password'];
+        $remember = isset($_POST['remember']);
+
+        // Validation
+        if (empty($username_or_email)) {
+            $login_errors[] = 'Username or email is required.';
+        }
+        if (empty($password)) {
+            $login_errors[] = 'Password is required.';
+        }
+
+        // If no errors, attempt login
+        if (empty($login_errors)) {
+            // Determine if input is email or username
+            $user_login = $username_or_email;
+            if (is_email($username_or_email)) {
+                $user = get_user_by('email', $username_or_email);
+                if ($user) {
+                    $user_login = $user->user_login;
+                }
+            }
+
+            $creds = array(
+                'user_login' => $user_login,
+                'user_password' => $password,
+                'remember' => $remember
+            );
+
+            $user = wp_signon($creds, false);
+
+            if (!is_wp_error($user)) {
+                // Successful login - redirect to course page
+                wp_redirect(home_url('/course/real-estate-foundations'));
+                exit;
+            } else {
+                $login_errors[] = 'Invalid username/email or password.';
+            }
+        }
     }
 }
 
 get_header();
 ?>
 
-<main class="main">
-    <!-- Login Section -->
-    <section class="login-section section">
-        <div class="container">
-            <div class="row justify-content-center">
-                <div class="col-lg-6 col-md-8">
-                    <div class="login-form-card">
-                        <!-- Form Header -->
-                        <div class="form-header">
-                            <div class="header-icon">
-                                <i class="bi bi-person-lock"></i>
-                            </div>
-                            <h3>Welcome Back</h3>
-                            <p>Sign in to access your courses and track your progress</p>
+<div class="auth-container">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-6 col-lg-5">
+                <div class="auth-card">
+                    <div class="auth-header">
+                        <h2 class="auth-title">Welcome Back</h2>
+                        <p class="auth-subtitle">Sign in to continue your real estate education</p>
+                    </div>
+
+                    <?php if (!empty($login_errors)): ?>
+                        <div class="alert alert-danger">
+                            <ul class="mb-0">
+                                <?php foreach ($login_errors as $error): ?>
+                                    <li><?php echo esc_html($error); ?></li>
+                                <?php endforeach; ?>
+                            </ul>
                         </div>
+                    <?php endif; ?>
+
+                    <form method="post" class="auth-form" id="login-form">
+                        <?php wp_nonce_field('student_login', 'login_nonce'); ?>
                         
-                        <?php if (isset($login_error)): ?>
-                            <div class="alert alert-danger" role="alert">
-                                <i class="bi bi-exclamation-triangle me-2"></i>
-                                <?php echo esc_html($login_error); ?>
-                            </div>
-                        <?php endif; ?>
-                        
-                        <!-- Login Form -->
-                        <form method="post" class="php-email-form">
-                            <div class="mb-4">
-                                <label for="username" class="form-label">Email or Username</label>
-                                <input type="text" 
-                                       name="username" 
-                                       id="username" 
-                                       class="form-control" 
-                                       placeholder="Enter your email or username"
-                                       value="<?php echo isset($_POST['username']) ? esc_attr($_POST['username']) : ''; ?>"
-                                       required>
-                            </div>
-                            
-                            <div class="mb-4">
-                                <label for="password" class="form-label">Password</label>
-                                <input type="password" 
-                                       name="password" 
-                                       id="password" 
-                                       class="form-control" 
-                                       placeholder="Enter your password"
-                                       required>
-                            </div>
-                            
-                            <div class="mb-4 d-flex justify-content-between align-items-center">
-                                <div class="form-check">
-                                    <input type="checkbox" 
-                                           name="remember" 
-                                           id="remember" 
-                                           class="form-check-input"
-                                           <?php echo isset($_POST['remember']) ? 'checked' : ''; ?>>
-                                    <label for="remember" class="form-check-label">
-                                        Remember me
-                                    </label>
-                                </div>
-                                <a href="<?php echo wp_lostpassword_url(); ?>" class="forgot-password-link">
-                                    Forgot password?
-                                </a>
-                            </div>
-                            
-                            <button type="submit" name="login_submit" class="submit-btn">
-                                <span>Sign In</span>
-                                <i class="bi bi-arrow-right"></i>
-                            </button>
-                        </form>
-                        
-                        <!-- Demo Mode Option -->
-                        <div class="demo-mode-section">
-                            <div class="divider">
-                                <span>OR</span>
-                            </div>
-                            <a href="<?php echo home_url('/course/?demo=1'); ?>" class="demo-mode-btn">
-                                <i class="bi bi-eye"></i>
-                                <span>Continue as Demo User</span>
-                            </a>
+                        <div class="form-group">
+                            <label for="username_or_email">Username or Email</label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="username_or_email" 
+                                   name="username_or_email" 
+                                   value="<?php echo isset($_POST['username_or_email']) ? esc_attr($_POST['username_or_email']) : ''; ?>"
+                                   required>
                         </div>
-                        
-                        <!-- Footer Links -->
-                        <div class="login-footer">
-                            <p>Don't have an account? <a href="#" class="register-link">Sign up here</a></p>
+
+                        <div class="form-group">
+                            <label for="password">Password</label>
+                            <input type="password" 
+                                   class="form-control" 
+                                   id="password" 
+                                   name="password" 
+                                   required>
                         </div>
+
+                        <div class="form-check">
+                            <input type="checkbox" 
+                                   class="form-check-input" 
+                                   id="remember" 
+                                   name="remember" 
+                                   <?php echo isset($_POST['remember']) ? 'checked' : ''; ?>>
+                            <label class="form-check-label" for="remember">
+                                Remember me
+                            </label>
+                        </div>
+
+                        <button type="submit" name="login_student" class="btn btn-primary btn-auth">
+                            Sign In
+                        </button>
+                    </form>
+
+                    <div class="auth-links">
+                        <p><a href="<?php echo wp_lostpassword_url(); ?>">Forgot your password?</a></p>
+                    </div>
+
+                    <div class="auth-footer">
+                        <p>Don't have an account? <a href="<?php echo home_url('/register'); ?>">Create Account</a></p>
                     </div>
                 </div>
             </div>
         </div>
-    </section>
-</main>
+    </div>
+</div>
 
 <style>
-/* Login Section Styles - Based on contact form styling */
-.login-section {
-    background: linear-gradient(135deg, var(--background-color), color-mix(in srgb, var(--accent-color), transparent 97%));
+.auth-container {
     min-height: 100vh;
     display: flex;
     align-items: center;
-    padding: 60px 0;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 40px 0;
 }
 
-.login-form-card {
-    background: var(--surface-color);
-    border-radius: 24px;
+.auth-card {
+    background: white;
+    border-radius: 16px;
     padding: 40px;
-    box-shadow: 0 20px 60px color-mix(in srgb, var(--default-color), transparent 92%);
-    border: 1px solid color-mix(in srgb, var(--accent-color), transparent 90%);
-    position: relative;
-    overflow: hidden;
-    max-width: 500px;
-    margin: 0 auto;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+    animation: fadeInUp 0.6s ease-out;
 }
 
-.login-form-card:before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: linear-gradient(90deg, var(--accent-color), color-mix(in srgb, var(--accent-color), #6366f1 30%));
-}
-
-/* Form Header */
-.form-header {
+.auth-header {
     text-align: center;
-    margin-bottom: 35px;
+    margin-bottom: 30px;
 }
 
-.header-icon {
-    width: 60px;
-    height: 60px;
-    background: linear-gradient(135deg, var(--accent-color), color-mix(in srgb, var(--accent-color), #6366f1 30%));
-    border-radius: 18px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 20px;
-}
-
-.header-icon i {
+.auth-title {
+    color: #333;
     font-size: 28px;
-    color: var(--contrast-color);
+    font-weight: 600;
+    margin-bottom: 10px;
 }
 
-.form-header h3 {
-    font-size: 26px;
-    font-weight: 700;
-    margin-bottom: 12px;
-    color: var(--heading-color);
-}
-
-.form-header p {
-    font-size: 15px;
-    line-height: 1.6;
-    color: color-mix(in srgb, var(--default-color), transparent 20%);
+.auth-subtitle {
+    color: #6c757d;
+    font-size: 16px;
     margin-bottom: 0;
 }
 
-/* Form Styles */
-.form-label {
-    font-weight: 600;
-    margin-bottom: 8px;
-    color: var(--heading-color);
-    font-size: 14px;
+.auth-form .form-group {
+    margin-bottom: 20px;
 }
 
-.form-control {
-    height: 52px;
-    padding: 16px 20px;
-    border-radius: 16px;
-    border: 2px solid color-mix(in srgb, var(--default-color), transparent 88%);
-    background-color: color-mix(in srgb, var(--surface-color), var(--background-color) 30%);
-    color: var(--default-color);
-    font-size: 15px;
-    transition: all 0.3s ease;
-    width: 100%;
+.auth-form label {
+    font-weight: 500;
+    color: #333;
+    margin-bottom: 5px;
 }
 
-.form-control:focus {
-    border-color: var(--accent-color);
-    box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-color), transparent 90%);
-    background-color: var(--surface-color);
-    outline: none;
+.auth-form .form-control {
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 16px;
+    transition: border-color 0.3s ease;
 }
 
-.form-control::placeholder {
-    color: color-mix(in srgb, var(--default-color), transparent 50%);
-    font-weight: 400;
+.auth-form .form-control:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
 }
 
-/* Checkbox and Links */
-.form-check-input {
-    border-radius: 4px;
-    border: 2px solid color-mix(in srgb, var(--default-color), transparent 80%);
-}
-
-.form-check-input:checked {
-    background-color: var(--accent-color);
-    border-color: var(--accent-color);
+.form-check {
+    margin: 25px 0;
 }
 
 .form-check-label {
     font-size: 14px;
-    color: var(--default-color);
+    color: #6c757d;
 }
 
-.forgot-password-link {
-    color: var(--accent-color);
-    text-decoration: none;
-    font-size: 14px;
-    font-weight: 500;
-    transition: color 0.3s ease;
-}
-
-.forgot-password-link:hover {
-    color: color-mix(in srgb, var(--accent-color), #6366f1 30%);
-}
-
-/* Submit Button */
-.submit-btn {
+.btn-auth {
     width: 100%;
-    background: linear-gradient(135deg, var(--accent-color), color-mix(in srgb, var(--accent-color), #6366f1 30%));
-    color: var(--contrast-color);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     border: none;
-    padding: 16px 30px;
-    border-radius: 16px;
-    font-weight: 600;
+    border-radius: 8px;
+    padding: 12px 24px;
     font-size: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    transition: all 0.3s ease;
-    position: relative;
-    overflow: hidden;
-    cursor: pointer;
+    font-weight: 600;
+    color: white;
+    transition: transform 0.2s ease;
 }
 
-.submit-btn:before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--contrast-color), transparent 85%), transparent);
-    transition: left 0.6s ease;
-}
-
-.submit-btn:hover {
+.btn-auth:hover {
     transform: translateY(-2px);
-    box-shadow: 0 12px 35px color-mix(in srgb, var(--accent-color), transparent 75%);
+    background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
 }
 
-.submit-btn:hover:before {
-    left: 100%;
-}
-
-.submit-btn:hover i {
-    transform: translateX(3px);
-}
-
-.submit-btn span,
-.submit-btn i {
-    position: relative;
-    z-index: 1;
-}
-
-.submit-btn i {
-    font-size: 16px;
-    transition: transform 0.3s ease;
-}
-
-/* Demo Mode Section */
-.demo-mode-section {
-    margin: 30px 0;
-}
-
-.divider {
+.auth-links {
     text-align: center;
-    position: relative;
-    margin: 25px 0;
+    margin: 20px 0;
 }
 
-.divider:before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: color-mix(in srgb, var(--default-color), transparent 85%);
-}
-
-.divider span {
-    background: var(--surface-color);
-    padding: 0 15px;
-    color: color-mix(in srgb, var(--default-color), transparent 30%);
+.auth-links a {
+    color: #667eea;
+    text-decoration: none;
     font-size: 14px;
-    font-weight: 500;
 }
 
-.demo-mode-btn {
-    width: 100%;
-    padding: 12px 20px;
-    border: 2px solid color-mix(in srgb, var(--accent-color), transparent 80%);
-    border-radius: 12px;
-    background: transparent;
-    color: var(--accent-color);
-    text-decoration: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    font-weight: 500;
-    transition: all 0.3s ease;
+.auth-links a:hover {
+    text-decoration: underline;
 }
 
-.demo-mode-btn:hover {
-    background: color-mix(in srgb, var(--accent-color), transparent 95%);
-    border-color: var(--accent-color);
-    color: var(--accent-color);
-    text-decoration: none;
-}
-
-/* Footer */
-.login-footer {
+.auth-footer {
     text-align: center;
-    margin-top: 25px;
-    padding-top: 25px;
-    border-top: 1px solid color-mix(in srgb, var(--default-color), transparent 90%);
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #e9ecef;
 }
 
-.login-footer p {
+.auth-footer p {
+    color: #6c757d;
     margin: 0;
-    font-size: 14px;
-    color: color-mix(in srgb, var(--default-color), transparent 20%);
 }
 
-.register-link {
-    color: var(--accent-color);
+.auth-footer a {
+    color: #667eea;
     text-decoration: none;
-    font-weight: 600;
-    transition: color 0.3s ease;
+    font-weight: 500;
 }
 
-.register-link:hover {
-    color: color-mix(in srgb, var(--accent-color), #6366f1 30%);
+.auth-footer a:hover {
+    text-decoration: underline;
 }
 
-/* Alert Styles */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 .alert {
-    border-radius: 12px;
-    padding: 12px 16px;
+    border-radius: 8px;
     margin-bottom: 20px;
-    border: 1px solid;
 }
 
-.alert-danger {
-    background: color-mix(in srgb, #dc3545, transparent 90%);
-    border-color: color-mix(in srgb, #dc3545, transparent 70%);
-    color: #dc3545;
+.alert ul {
+    list-style: none;
+    padding-left: 0;
 }
 
-/* Responsive */
+.alert li {
+    margin-bottom: 5px;
+}
+
 @media (max-width: 768px) {
-    .login-form-card {
-        padding: 30px 25px;
+    .auth-card {
         margin: 20px;
+        padding: 30px 20px;
     }
     
-    .form-header h3 {
+    .auth-title {
         font-size: 24px;
     }
-    
-    .login-section {
-        padding: 40px 0;
-    }
-}
-
-/* CSS Variables (matching the course page design) */
-:root {
-    --background-color: #f8f9fa;
-    --surface-color: #ffffff;
-    --accent-color: #667eea;
-    --contrast-color: #ffffff;
-    --heading-color: #333333;
-    --default-color: #666666;
 }
 </style>
 
