@@ -142,4 +142,39 @@ if (get_option('permalink_structure')) {
 }
 
 echo "=== Done! ===\n";
+
+// 6. Create Login Page
+echo "\n6. Creating Login page...\n";
+
+$login_page = get_page_by_path('login');
+
+if (!$login_page) {
+    $page_data = array(
+        'post_title'    => 'Login',
+        'post_name'     => 'login',
+        'post_content'  => '<!-- Login content is handled by the template -->',
+        'post_status'   => 'publish',
+        'post_type'     => 'page',
+        'post_author'   => 1,
+        'comment_status' => 'closed',
+        'ping_status'   => 'closed',
+        'page_template' => 'page-login.php'
+    );
+    
+    $page_id = wp_insert_post($page_data);
+    
+    if (!is_wp_error($page_id)) {
+        update_post_meta($page_id, '_wp_page_template', 'page-login.php');
+        echo "✓ Login page created with ID: $page_id\n";
+    } else {
+        echo "✗ Error creating login page: " . $page_id->get_error_message() . "\n";
+    }
+} else {
+    echo "✓ Login page already exists with ID: " . $login_page->ID . "\n";
+    update_post_meta($login_page->ID, '_wp_page_template', 'page-login.php');
+}
+
+echo "\nLogin page available at: $site_url/login/\n";
+
+echo "\n=== Done! ===\n";
 ?>
