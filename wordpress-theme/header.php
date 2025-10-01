@@ -1,3 +1,11 @@
+<?php
+/**
+ * Header template - starts output buffering to prevent redirect issues
+ */
+if (!ob_get_level()) {
+    ob_start();
+}
+?>
 <!DOCTYPE html>
 <html <?php language_attributes(); ?>>
 
@@ -10,6 +18,104 @@
   <link href="<?php echo get_template_directory_uri(); ?>/assets/img/apple-touch-icon.png" rel="apple-touch-icon">
 
   <?php wp_head(); ?>
+  
+  <style>
+  /* User Menu Styling */
+  .user-menu {
+    position: relative;
+  }
+  
+  .btn-user {
+    background: transparent;
+    border: 2px solid var(--accent-color, #667eea);
+    border-radius: 25px;
+    padding: 8px 16px;
+    color: var(--accent-color, #667eea);
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+    text-decoration: none;
+  }
+  
+  .btn-user:hover {
+    background: var(--accent-color, #667eea);
+    color: white;
+  }
+  
+  .btn-user i {
+    font-size: 18px;
+  }
+  
+  .btn-getstarted {
+    background: transparent;
+    border: 2px solid var(--accent-color, #667eea);
+    border-radius: 25px;
+    padding: 8px 16px;
+    color: var(--accent-color, #667eea);
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+    text-decoration: none;
+  }
+  
+  .btn-getstarted:hover {
+    background: var(--accent-color, #667eea);
+    color: white;
+    text-decoration: none;
+  }
+  
+  .btn-getstarted i {
+    font-size: 16px;
+  }
+  
+  .dropdown-menu {
+    border: none;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    border-radius: 12px;
+    padding: 8px 0;
+    margin-top: 8px;
+  }
+  
+  .dropdown-item {
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #333;
+    transition: background-color 0.2s ease;
+  }
+  
+  .dropdown-item:hover {
+    background-color: #f8f9fa;
+    color: var(--accent-color, #667eea);
+  }
+  
+  .dropdown-item i {
+    font-size: 16px;
+    width: 20px;
+  }
+  
+  .dropdown-divider {
+    margin: 8px 0;
+  }
+  
+  @media (max-width: 768px) {
+    .btn-user,
+    .btn-getstarted {
+      padding: 6px 12px;
+      font-size: 14px;
+    }
+    
+    .btn-user span,
+    .btn-getstarted span {
+      display: none;
+    }
+  }
+  </style>
 </head>
 
 <body <?php body_class(); ?>>
@@ -40,7 +146,28 @@
         <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
       </nav>
 
-      <a class="btn-getstarted" href="#about"><?php esc_html_e('Get Started', 'clarity-aws-ghl'); ?></a>
+      <?php if (is_user_logged_in()) : ?>
+        <?php $current_user = wp_get_current_user(); ?>
+        <div class="user-menu dropdown">
+          <button class="btn-user dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-person-circle"></i>
+            <?php echo esc_html($current_user->display_name); ?>
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+            <li><a class="dropdown-item" href="<?php echo home_url('/course/real-estate-foundations'); ?>">
+              <i class="bi bi-book"></i> My Courses
+            </a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item" href="<?php echo wp_logout_url(home_url()); ?>">
+              <i class="bi bi-box-arrow-right"></i> Logout
+            </a></li>
+          </ul>
+        </div>
+      <?php else : ?>
+        <a class="btn-getstarted" href="<?php echo home_url('/login'); ?>">
+          <i class="bi bi-person"></i> Login
+        </a>
+      <?php endif; ?>
 
     </div>
   </header>
