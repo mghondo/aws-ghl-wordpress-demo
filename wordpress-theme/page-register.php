@@ -11,6 +11,9 @@ if (!defined('ABSPATH')) {
 
 // Redirect if already logged in
 if (is_user_logged_in()) {
+    while (ob_get_level()) {
+        ob_end_clean();
+    }
     wp_redirect(home_url('/course/real-estate-foundations'));
     exit;
 }
@@ -78,23 +81,39 @@ if (isset($_POST['register_student'])) {
                 global $wpdb;
                 $enrollments_table = $wpdb->prefix . 'clarity_course_enrollments';
                 
-                $enrollment_result = $wpdb->insert(
-                    $enrollments_table,
-                    array(
-                        'user_id' => $user_id,
-                        'course_id' => 1, // Tier 1 course ID (Real Estate Foundations)
-                        'enrollment_date' => current_time('mysql'),
-                        'enrollment_status' => 'active',
-                        'payment_status' => 'paid',
-                        'payment_amount' => 0.00,
-                        'progress_percentage' => 0
-                    ),
-                    array('%d', '%d', '%s', '%s', '%s', '%f', '%d')
-                );
+                // Suppress database errors temporarily to prevent output before redirect
+                $wpdb->suppress_errors(true);
+                
+                // Check if user is already enrolled
+                $existing_enrollment = $wpdb->get_var($wpdb->prepare(
+                    "SELECT id FROM $enrollments_table WHERE user_id = %d AND course_id = %d",
+                    $user_id, 1
+                ));
+                
+                if (!$existing_enrollment) {
+                    $enrollment_result = $wpdb->insert(
+                        $enrollments_table,
+                        array(
+                            'user_id' => $user_id,
+                            'course_id' => 1, // Tier 1 course ID (Real Estate Foundations)
+                            'enrollment_date' => current_time('mysql'),
+                            'enrollment_status' => 'active',
+                            'payment_status' => 'paid',
+                            'payment_amount' => 0.00,
+                            'progress_percentage' => 0
+                        ),
+                        array('%d', '%d', '%s', '%s', '%s', '%f', '%d')
+                    );
 
-                if ($enrollment_result === false) {
-                    error_log('Failed to create enrollment record for user: ' . $user_id);
+                    if ($enrollment_result === false) {
+                        error_log('Failed to create enrollment record for user: ' . $user_id . ' - Error: ' . $wpdb->last_error);
+                    }
+                } else {
+                    error_log('User ' . $user_id . ' is already enrolled in course 1');
                 }
+                
+                // Re-enable database errors
+                $wpdb->suppress_errors(false);
 
                 // Check if this email exists in prospects table and link them
                 $contacts_table = $wpdb->prefix . 'clarity_ghl_contacts';
@@ -116,11 +135,19 @@ if (isset($_POST['register_student'])) {
                 $user = wp_signon($creds, false);
                 
                 if (!is_wp_error($user)) {
-                    // Successful registration and login
+                    // Successful registration and login - redirect BEFORE any output
+                    while (ob_get_level()) {
+                        ob_end_clean();
+                    }
                     wp_redirect(home_url('/course/real-estate-foundations?welcome=1'));
                     exit;
                 } else {
-                    $registration_errors[] = 'Account created but auto-login failed. Please try logging in manually.';
+                    // Account created but auto-login failed - still redirect to prevent re-submission
+                    while (ob_get_level()) {
+                        ob_end_clean();
+                    }
+                    wp_redirect(home_url('/login?registered=1'));
+                    exit;
                 }
             }
         }
@@ -163,7 +190,7 @@ get_header();
                                    class="form-control" 
                                    id="first_name" 
                                    name="first_name" 
-                                   value="<?php echo isset($_POST['first_name']) ? esc_attr($_POST['first_name']) : ''; ?>"
+                                   value=""
                                    required>
                         </div>
 
@@ -173,7 +200,7 @@ get_header();
                                    class="form-control" 
                                    id="last_name" 
                                    name="last_name" 
-                                   value="<?php echo isset($_POST['last_name']) ? esc_attr($_POST['last_name']) : ''; ?>"
+                                   value=""
                                    required>
                         </div>
 
@@ -183,7 +210,7 @@ get_header();
                                    class="form-control" 
                                    id="email" 
                                    name="email" 
-                                   value="<?php echo isset($_POST['email']) ? esc_attr($_POST['email']) : ''; ?>"
+                                   value=""
                                    required>
                         </div>
 
@@ -193,7 +220,7 @@ get_header();
                                    class="form-control" 
                                    id="username" 
                                    name="username" 
-                                   value="<?php echo isset($_POST['username']) ? esc_attr($_POST['username']) : ''; ?>"
+                                   value=""
                                    required>
                             <small class="form-text text-muted">Choose a unique username for your account</small>
                         </div>
@@ -414,17 +441,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     passwordField.addEventListener('input', validatePasswords);
     confirmPasswordField.addEventListener('input', validatePasswords);
-    
-    // Auto-generate username from email
-    const emailField = document.getElementById('email');
-    const usernameField = document.getElementById('username');
-    
-    emailField.addEventListener('input', function() {
-        if (!usernameField.value) {
-            const emailPrefix = this.value.split('@')[0];
-            usernameField.value = emailPrefix.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
-        }
-    });
 });
 </script>
 
