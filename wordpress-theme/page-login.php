@@ -11,7 +11,7 @@ if (!defined('ABSPATH')) {
 
 // Redirect if already logged in
 if (is_user_logged_in()) {
-    wp_redirect(home_url('/course/real-estate-foundations'));
+    wp_redirect(home_url('/dashboard'));
     exit;
 }
 
@@ -56,8 +56,8 @@ if (isset($_POST['login_student'])) {
             $user = wp_signon($creds, false);
 
             if (!is_wp_error($user)) {
-                // Successful login - redirect to course page
-                wp_redirect(home_url('/course/real-estate-foundations'));
+                // Successful login - redirect to dashboard
+                wp_redirect(home_url('/dashboard'));
                 exit;
             } else {
                 $login_errors[] = 'Invalid username/email or password.';

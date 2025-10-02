@@ -154,8 +154,8 @@ if (!ob_get_level()) {
             <?php echo esc_html($current_user->display_name); ?>
           </button>
           <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-            <li><a class="dropdown-item" href="<?php echo home_url('/course/real-estate-foundations'); ?>">
-              <i class="bi bi-book"></i> My Courses
+            <li><a class="dropdown-item" href="<?php echo home_url('/dashboard'); ?>">
+              <i class="bi bi-speedometer2"></i> My Dashboard
             </a></li>
             <li><hr class="dropdown-divider"></li>
             <li><a class="dropdown-item" href="<?php echo wp_logout_url(home_url()); ?>">

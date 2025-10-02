@@ -14,7 +14,7 @@ if (is_user_logged_in()) {
     while (ob_get_level()) {
         ob_end_clean();
     }
-    wp_redirect(home_url('/course/real-estate-foundations'));
+    wp_redirect(home_url('/dashboard'));
     exit;
 }
 
@@ -139,7 +139,7 @@ if (isset($_POST['register_student'])) {
                     while (ob_get_level()) {
                         ob_end_clean();
                     }
-                    wp_redirect(home_url('/course/real-estate-foundations?welcome=1'));
+                    wp_redirect(home_url('/dashboard?welcome=1'));
                     exit;
                 } else {
                     // Account created but auto-login failed - still redirect to prevent re-submission

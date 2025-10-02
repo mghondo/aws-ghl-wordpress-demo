@@ -274,6 +274,7 @@ class Clarity_AWS_GHL_Courses_Admin {
         wp_localize_script('clarity-courses-admin', 'clarityCoursesAjax', array(
             'ajax_url' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('clarity_courses_nonce'),
+            'home_url' => home_url(),
             'strings' => array(
                 'confirm_delete' => __('Are you sure you want to delete this course?', 'clarity-aws-ghl'),
                 'confirm_reset' => __('Are you sure you want to reset this user\'s progress?', 'clarity-aws-ghl'),
@@ -413,6 +414,31 @@ class Clarity_AWS_GHL_Courses_Admin {
                                     <td><textarea name="course_description" rows="4" class="large-text"></textarea></td>
                                 </tr>
                                 <tr>
+                                    <th scope="row" style="vertical-align: top; padding-top: 10px;">
+                                        <?php _e('Funnel Page Content', 'clarity-aws-ghl'); ?>
+                                        <p class="description" style="font-weight: normal; margin-top: 5px;">
+                                            <?php _e('Create your sales pitch content here. This will appear on the funnel page.', 'clarity-aws-ghl'); ?>
+                                        </p>
+                                    </th>
+                                    <td>
+                                        <div id="add-funnel-editor-container">
+                                            <?php
+                                            wp_editor('', 'add_funnel_content', array(
+                                                'textarea_name' => 'funnel_content',
+                                                'editor_height' => 300,
+                                                'media_buttons' => true,
+                                                'teeny' => false,
+                                                'textarea_rows' => 15,
+                                                'tinymce' => array(
+                                                    'toolbar1' => 'formatselect,bold,italic,underline,strikethrough,|,alignleft,aligncenter,alignright,alignjustify,|,link,unlink,|,bullist,numlist,|,blockquote,hr,|,wp_more,|,spellchecker,wp_fullscreen,wp_adv',
+                                                    'toolbar2' => 'pastetext,pasteword,removeformat,|,charmap,|,outdent,indent,|,undo,redo,|,wp_help'
+                                                )
+                                            ));
+                                            ?>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
                                     <th scope="row"><?php _e('Course Tier', 'clarity-aws-ghl'); ?></th>
                                     <td>
                                         <select name="course_tier" required>
@@ -515,6 +541,37 @@ class Clarity_AWS_GHL_Courses_Admin {
                                 <tr>
                                     <th scope="row"><?php _e('Description', 'clarity-aws-ghl'); ?></th>
                                     <td><textarea name="course_description" rows="4" class="large-text"></textarea></td>
+                                </tr>
+                                <tr>
+                                    <th scope="row" style="vertical-align: top; padding-top: 10px;">
+                                        <?php _e('Funnel Page Content', 'clarity-aws-ghl'); ?>
+                                        <p class="description" style="font-weight: normal; margin-top: 5px;">
+                                            <?php _e('Create your sales pitch content here. This will appear on the funnel page.', 'clarity-aws-ghl'); ?>
+                                        </p>
+                                    </th>
+                                    <td>
+                                        <div id="edit-funnel-editor-container">
+                                            <?php
+                                            wp_editor('', 'edit_funnel_content', array(
+                                                'textarea_name' => 'funnel_content',
+                                                'editor_height' => 300,
+                                                'media_buttons' => true,
+                                                'teeny' => false,
+                                                'textarea_rows' => 15,
+                                                'tinymce' => array(
+                                                    'toolbar1' => 'formatselect,bold,italic,underline,strikethrough,|,alignleft,aligncenter,alignright,alignjustify,|,link,unlink,|,bullist,numlist,|,blockquote,hr,|,wp_more,|,spellchecker,wp_fullscreen,wp_adv',
+                                                    'toolbar2' => 'pastetext,pasteword,removeformat,|,charmap,|,outdent,indent,|,undo,redo,|,wp_help'
+                                                )
+                                            ));
+                                            ?>
+                                        </div>
+                                        <p style="margin-top: 10px;">
+                                            <a href="#" id="preview-funnel-btn" target="_blank" class="button button-secondary" style="display: none;">
+                                                <span class="dashicons dashicons-external" style="vertical-align: middle;"></span>
+                                                <?php _e('Preview Funnel Page', 'clarity-aws-ghl'); ?>
+                                            </a>
+                                        </p>
+                                    </td>
                                 </tr>
                                 <tr>
                                     <th scope="row"><?php _e('Course Price', 'clarity-aws-ghl'); ?></th>
@@ -1137,7 +1194,8 @@ class Clarity_AWS_GHL_Courses_Admin {
             'course_tier' => intval($_POST['course_tier']),
             'course_status' => sanitize_text_field($_POST['course_status']),
             'course_order' => 999,
-            'featured_image' => !empty($_POST['featured_image']) ? sanitize_textarea_field($_POST['featured_image']) : ''
+            'featured_image' => !empty($_POST['featured_image']) ? sanitize_textarea_field($_POST['featured_image']) : '',
+            'funnel_content' => !empty($_POST['funnel_content']) ? wp_kses_post(wp_unslash($_POST['funnel_content'])) : ''
         );
         
         // Set price based on tier or custom price
@@ -1477,9 +1535,13 @@ class Clarity_AWS_GHL_Courses_Admin {
             'course_price' => $course_price,
             'course_status' => $course_status,
             'course_icon' => $course_icon,
-            'featured_image' => !empty($_POST['featured_image']) ? sanitize_textarea_field($_POST['featured_image']) : ''
+            'featured_image' => !empty($_POST['featured_image']) ? sanitize_textarea_field($_POST['featured_image']) : '',
+            'funnel_content' => !empty($_POST['funnel_content']) ? wp_kses_post(wp_unslash($_POST['funnel_content'])) : ''
         );
         
+        error_log('UPDATE COURSE: Course ID: ' . $course_id);
+        error_log('UPDATE COURSE: Funnel content received: ' . (!empty($_POST['funnel_content']) ? 'YES (' . strlen($_POST['funnel_content']) . ' chars)' : 'NO'));
+        error_log('UPDATE COURSE: Funnel content raw: ' . substr($_POST['funnel_content'] ?? 'EMPTY', 0, 200));
         error_log('UPDATE COURSE: Course data: ' . print_r($course_data, true));
         error_log('UPDATE COURSE: Table name: ' . $tables['courses']);
         
