@@ -306,7 +306,7 @@ get_header(); ?>
           </div>
 
           <div class="col-lg-6">
-            <form action="" method="post" class="php-email-form" data-aos="fade-up" data-aos-delay="200">
+            <form action="" method="post" class="php-email-form" id="contact-form" data-aos="fade-up" data-aos-delay="200">
               <div class="row gy-4">
 
                 <div class="col-md-6">
@@ -334,7 +334,10 @@ get_header(); ?>
                   <div class="error-message"></div>
                   <div class="sent-message">Your message has been sent. Thank you!</div>
 
-                  <button type="submit">Send Message</button>
+                  <div class="buttons">
+                    <a href="#" onclick="document.getElementById('contact-form').submit(); return false;" class="btn btn-primary" style="background: var(--accent-color); color: var(--contrast-color); border: 2px solid var(--accent-color);">Send Message</a>
+                  </div>
+
                 </div>
 
               </div>
