@@ -66,7 +66,7 @@
     </div>
 
     <div class="container copyright text-center mt-4">
-      <p>© <span><?php esc_html_e('Copyright', 'clarity-aws-ghl'); ?></span> <?php echo date('Y'); ?> <strong class="px-1 sitename"><?php bloginfo('name'); ?></strong> <span>All Rights Reserved Morgo LLC</span></p>
+      <p>© <span><?php esc_html_e('Copyright', 'clarity-aws-ghl'); ?></span> <?php echo date('Y'); ?> <strong class="px-1 sitename"><?php bloginfo('name'); ?></strong> <span>All Rights Reserved Morgo LLC.</span></p>
       <p class="credits">
         <?php
         printf(

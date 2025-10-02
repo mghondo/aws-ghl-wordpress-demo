@@ -11,6 +11,139 @@ define('CLARITY_THEME_DIR', get_template_directory());
 define('CLARITY_THEME_URI', get_template_directory_uri());
 
 /**
+ * Custom URL Rewriting for Funnel Pages
+ */
+function clarity_add_funnel_rewrite_rules() {
+    add_rewrite_rule(
+        '^funnel/([^/]+)/?$',
+        'index.php?pagename=funnel&course_slug=$matches[1]',
+        'top'
+    );
+}
+add_action('init', 'clarity_add_funnel_rewrite_rules');
+
+/**
+ * Add course_slug query var
+ */
+function clarity_add_query_vars($vars) {
+    $vars[] = 'course_slug';
+    return $vars;
+}
+add_filter('query_vars', 'clarity_add_query_vars');
+
+/**
+ * Template redirect for funnel pages
+ */
+function clarity_funnel_template_redirect() {
+    $course_slug = get_query_var('course_slug');
+    
+    if (!empty($course_slug) && is_page('funnel')) {
+        // Set the course slug globally for the template
+        global $clarity_course_slug;
+        $clarity_course_slug = $course_slug;
+        
+        // Load the funnel template
+        include(get_template_directory() . '/page-funnel.php');
+        exit;
+    }
+}
+add_action('template_redirect', 'clarity_funnel_template_redirect');
+
+/**
+ * Create funnel page programmatically
+ */
+function clarity_create_funnel_page() {
+    $page_slug = 'funnel';
+    $page = get_page_by_path($page_slug);
+    
+    if (!$page) {
+        $page_data = array(
+            'post_title' => 'Course Funnel',
+            'post_content' => '',
+            'post_status' => 'publish',
+            'post_type' => 'page',
+            'post_name' => $page_slug,
+            'post_author' => 1
+        );
+        
+        wp_insert_post($page_data);
+        
+        // Flush rewrite rules
+        flush_rewrite_rules();
+    }
+}
+add_action('after_switch_theme', 'clarity_create_funnel_page');
+
+/**
+ * Handle course enrollment from funnel page
+ */
+function clarity_handle_course_enrollment() {
+    if (!isset($_POST['action']) || $_POST['action'] !== 'enroll_in_course') {
+        return;
+    }
+    
+    if (!wp_verify_nonce($_POST['enrollment_nonce'], 'enroll_course')) {
+        wp_die('Security check failed');
+    }
+    
+    if (!is_user_logged_in()) {
+        wp_redirect(home_url('/login'));
+        exit;
+    }
+    
+    $course_id = intval($_POST['course_id']);
+    $user_id = get_current_user_id();
+    
+    // Get course data
+    global $wpdb;
+    $courses_table = $wpdb->prefix . 'clarity_courses';
+    $course = $wpdb->get_row($wpdb->prepare(
+        "SELECT * FROM {$courses_table} WHERE id = %d AND course_status = 'published'",
+        $course_id
+    ));
+    
+    if (!$course) {
+        wp_die('Course not found');
+    }
+    
+    // Check if already enrolled
+    $enrollments_table = $wpdb->prefix . 'clarity_course_enrollments';
+    $existing = $wpdb->get_var($wpdb->prepare(
+        "SELECT id FROM {$enrollments_table} WHERE user_id = %d AND course_id = %d",
+        $user_id,
+        $course_id
+    ));
+    
+    if ($existing) {
+        wp_redirect(home_url('/course/' . $course->course_slug));
+        exit;
+    }
+    
+    // Create enrollment
+    $result = $wpdb->insert(
+        $enrollments_table,
+        array(
+            'user_id' => $user_id,
+            'course_id' => $course_id,
+            'enrollment_date' => current_time('mysql'),
+            'enrollment_status' => 'active',
+            'progress_percentage' => 0
+        ),
+        array('%d', '%d', '%s', '%s', '%d')
+    );
+    
+    if ($result) {
+        // Redirect to course page
+        wp_redirect(home_url('/course/' . $course->course_slug . '?enrolled=1'));
+    } else {
+        wp_redirect(home_url('/funnel/' . $course->course_slug . '?error=1'));
+    }
+    exit;
+}
+add_action('admin_post_enroll_in_course', 'clarity_handle_course_enrollment');
+add_action('admin_post_nopriv_enroll_in_course', 'clarity_handle_course_enrollment');
+
+/**
  * Theme Setup
  */
 function clarity_theme_setup() {

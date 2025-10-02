@@ -40,6 +40,10 @@
         // Add course button
         $('#add-course-btn').on('click', function() {
             $('#add-course-modal').show();
+            // Initialize TinyMCE editor after modal is shown
+            setTimeout(function() {
+                initializeTinyMCEEditor('add_funnel_content', '');
+            }, 100);
         });
         
         // Fix database button
@@ -276,6 +280,17 @@
             return;
         }
         
+        // Get funnel content from TinyMCE or fallback to textarea
+        var funnelContent = '';
+        if (typeof tinymce !== 'undefined' && tinymce.get('add_funnel_content')) {
+            funnelContent = tinymce.get('add_funnel_content').getContent();
+            console.log('📝 CREATE: Got funnel content from TinyMCE:', funnelContent.substring(0, 100));
+        } else {
+            funnelContent = $form.find('[name="funnel_content"]').val() || '';
+            console.log('📝 CREATE: Got funnel content from textarea:', funnelContent.substring(0, 100));
+        }
+        console.log('📊 CREATE: Funnel content length:', funnelContent.length);
+
         var formData = {
             action: 'clarity_create_course',
             nonce: clarityCoursesAjax.nonce,
@@ -286,7 +301,8 @@
             course_price: $form.find('[name="course_price"]').val(),
             course_status: $form.find('[name="course_status"]').val(),
             course_icon: $form.find('[name="course_icon"]').val(),
-            featured_image: $('#featured_image').val()
+            featured_image: $('#featured_image').val(),
+            funnel_content: funnelContent
         };
         
         $button.prop('disabled', true).text(clarityCoursesAjax.strings.processing);
@@ -1095,6 +1111,21 @@
                         console.log('📸 No existing image for this course');
                     }
                     
+                    // Handle funnel content - load into TinyMCE editor
+                    if (typeof tinymce !== 'undefined' && tinymce.get('edit_funnel_content')) {
+                        tinymce.get('edit_funnel_content').setContent(course.funnel_content || '');
+                    } else {
+                        // Fallback to textarea if TinyMCE not available
+                        $('#edit-course-form [name="funnel_content"]').val(course.funnel_content || '');
+                    }
+                    
+                    // Update preview funnel button
+                    if (course.course_slug) {
+                        $('#preview-funnel-btn').attr('href', clarityCoursesAjax.home_url + '/funnel/' + course.course_slug).show();
+                    } else {
+                        $('#preview-funnel-btn').hide();
+                    }
+                    
                     // Update custom dropdown display
                     var iconClass = course.course_icon || 'bi-mortarboard';
                     var iconOption = $('#edit_icon_dropdown .icon-option-item[data-value="' + iconClass + '"]');
@@ -1103,6 +1134,12 @@
                     $('#edit_icon_dropdown .selected-text').text(iconName);
                     
                     $('#edit-course-modal').show();
+                    
+                    // Initialize TinyMCE editor after modal is shown
+                    setTimeout(function() {
+                        initializeTinyMCEEditor('edit_funnel_content', course.funnel_content || '');
+                    }, 100);
+                    
                 } else {
                     showMessage(response.data || 'Failed to load course', 'error');
                 }
@@ -1132,6 +1169,18 @@
         var featuredImageValue = $('#edit_featured_image').val();
         console.log('Featured image value being sent:', featuredImageValue ? (featuredImageValue.length > 100 ? 'Base64 data (' + featuredImageValue.length + ' chars)' : featuredImageValue) : 'EMPTY');
         
+        // Get funnel content from TinyMCE or fallback to textarea
+        var funnelContent = '';
+        if (typeof tinymce !== 'undefined' && tinymce.get('edit_funnel_content')) {
+            funnelContent = tinymce.get('edit_funnel_content').getContent();
+            console.log('📝 Got funnel content from TinyMCE:', funnelContent.substring(0, 100));
+        } else {
+            funnelContent = $form.find('[name="funnel_content"]').val() || '';
+            console.log('📝 Got funnel content from textarea:', funnelContent.substring(0, 100));
+        }
+        console.log('📊 Funnel content length:', funnelContent.length);
+        console.log('🆔 Course ID being updated:', $('#edit-course-id').val());
+
         var formData = {
             action: 'clarity_update_course',
             nonce: clarityCoursesAjax.nonce,
@@ -1141,7 +1190,8 @@
             course_price: $form.find('[name="course_price"]').val(),
             course_status: $form.find('[name="course_status"]').val(),
             course_icon: $('#edit_course_icon').val() || 'bi-mortarboard',
-            featured_image: featuredImageValue
+            featured_image: featuredImageValue,
+            funnel_content: funnelContent
         };
         
         console.log('Form data collected:', formData);
@@ -1303,6 +1353,44 @@
             $(fileInputId).val('');
             
             console.log('Image removed');
+        });
+    }
+    
+    /**
+     * Initialize TinyMCE editor for funnel content
+     */
+    function initializeTinyMCEEditor(editorId, content) {
+        if (typeof tinymce === 'undefined') {
+            console.log('TinyMCE not loaded, using fallback textarea');
+            return;
+        }
+        
+        // Remove existing editor instance if it exists
+        if (tinymce.get(editorId)) {
+            tinymce.get(editorId).remove();
+        }
+        
+        // Initialize TinyMCE editor
+        tinymce.init({
+            selector: '#' + editorId,
+            height: 300,
+            menubar: false,
+            plugins: [
+                'advlist autolink lists link image charmap print preview anchor',
+                'searchreplace visualblocks code fullscreen',
+                'insertdatetime media table paste code help wordcount'
+            ],
+            toolbar: 'undo redo | formatselect | bold italic backcolor | ' +
+                     'alignleft aligncenter alignright alignjustify | ' +
+                     'bullist numlist outdent indent | removeformat | help',
+            content_style: 'body { font-family:Helvetica,Arial,sans-serif; font-size:14px }',
+            setup: function(editor) {
+                editor.on('init', function() {
+                    if (content) {
+                        editor.setContent(content);
+                    }
+                });
+            }
         });
     }
     
