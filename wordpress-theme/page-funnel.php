@@ -112,20 +112,22 @@ get_header();
                                     </a>
                                 </div>
                             <?php elseif (is_user_logged_in()): ?>
-                                <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="enrollment-form">
-                                    <?php wp_nonce_field('enroll_course', 'enrollment_nonce'); ?>
-                                    <input type="hidden" name="action" value="enroll_in_course">
-                                    <input type="hidden" name="course_id" value="<?php echo esc_attr($course->id); ?>">
-                                    <button type="submit" class="btn btn-primary btn-lg btn-enroll">
-                                        <?php if ($course->course_price == 0): ?>
+                                <?php if ($course->course_price == 0): ?>
+                                    <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="enrollment-form">
+                                        <?php wp_nonce_field('enroll_course', 'enrollment_nonce'); ?>
+                                        <input type="hidden" name="action" value="enroll_in_course">
+                                        <input type="hidden" name="course_id" value="<?php echo esc_attr($course->id); ?>">
+                                        <button type="submit" class="btn btn-primary btn-lg btn-enroll">
                                             <i class="bi bi-unlock"></i>
                                             Enroll Free Now
-                                        <?php else: ?>
-                                            <i class="bi bi-credit-card"></i>
-                                            Enroll for $<?php echo number_format($course->course_price, 0); ?>
-                                        <?php endif; ?>
-                                    </button>
-                                </form>
+                                        </button>
+                                    </form>
+                                <?php else: ?>
+                                    <a href="<?php echo home_url('/checkout?course_id=' . $course->id); ?>" class="btn btn-primary btn-lg btn-enroll">
+                                        <i class="bi bi-credit-card"></i>
+                                        Proceed to Checkout - $<?php echo number_format($course->course_price, 0); ?>
+                                    </a>
+                                <?php endif; ?>
                             <?php else: ?>
                                 <div class="login-prompt">
                                     <p class="lead">Ready to start your real estate journey?</p>
@@ -189,20 +191,22 @@ get_header();
                                 Continue Your Course
                             </a>
                         <?php elseif (is_user_logged_in()): ?>
-                            <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="enrollment-form">
-                                <?php wp_nonce_field('enroll_course', 'enrollment_nonce'); ?>
-                                <input type="hidden" name="action" value="enroll_in_course">
-                                <input type="hidden" name="course_id" value="<?php echo esc_attr($course->id); ?>">
-                                <button type="submit" class="btn btn-primary btn-lg">
-                                    <?php if ($course->course_price == 0): ?>
+                            <?php if ($course->course_price == 0): ?>
+                                <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="enrollment-form">
+                                    <?php wp_nonce_field('enroll_course', 'enrollment_nonce'); ?>
+                                    <input type="hidden" name="action" value="enroll_in_course">
+                                    <input type="hidden" name="course_id" value="<?php echo esc_attr($course->id); ?>">
+                                    <button type="submit" class="btn btn-primary btn-lg">
                                         <i class="bi bi-unlock"></i>
                                         Start Free Course
-                                    <?php else: ?>
-                                        <i class="bi bi-credit-card"></i>
-                                        Enroll for $<?php echo number_format($course->course_price, 0); ?>
-                                    <?php endif; ?>
-                                </button>
-                            </form>
+                                    </button>
+                                </form>
+                            <?php else: ?>
+                                <a href="<?php echo home_url('/checkout?course_id=' . $course->id); ?>" class="btn btn-primary btn-lg">
+                                    <i class="bi bi-credit-card"></i>
+                                    Proceed to Checkout - $<?php echo number_format($course->course_price, 0); ?>
+                                </a>
+                            <?php endif; ?>
                         <?php else: ?>
                             <a href="<?php echo home_url('/register?redirect_to=' . urlencode($_SERVER['REQUEST_URI'])); ?>" class="btn btn-primary btn-lg">
                                 <i class="bi bi-rocket"></i>
