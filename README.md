@@ -58,8 +58,11 @@ This project demonstrates a professional WordPress integration built on the Clar
 - ✅ **Dynamic Frontend**: MainPage template dynamically displays courses from admin with selected icons
 - ✅ **Database Integrity**: Automatic migration system ensures all required columns exist
 
-### Phase 2: AWS Lambda Functions - BACKLOG 📋
-- 📋 **Issue #2**: AWS Lambda processing functions (Planned for next phase)
+### Phase 2: AWS Lambda Certificate Generation - IN PLANNING 🎓
+- 📋 **Issue #2**: AWS Lambda certificate generation system
+- 🎯 **Architecture Designed**: Complete strategy for PDF certificate generation
+- 📊 **Database Ready**: Tables already have certificate fields (certificate_issued, certificate_url)
+- 🔧 **Integration Points Identified**: WordPress hooks and API Gateway endpoints planned
 
 ## 🏗️ Complete Project Structure
 
@@ -244,8 +247,31 @@ AWS_S3_SECRET_ACCESS_KEY=BWieElN1+pDUTSQvavwvdopK8+NLGmxcRbZrArM
 
 ## 🎯 Next Development Opportunities
 
+### Phase 2: AWS Lambda Certificate Generation System 🎓
+**Architecture Complete - Ready for Implementation**
+
+#### Certificate Generation Components:
+- **Lambda Function**: Python 3.11 with WeasyPrint/Puppeteer for PDF generation
+- **API Gateway**: REST endpoint for WordPress to trigger certificate generation
+- **S3 Storage**: Secure certificate storage with signed URLs
+- **Database Integration**: Certificate tracking in `wp_clarity_course_enrollments` table
+- **Verification System**: QR codes and unique verification codes for authenticity
+- **Email Delivery**: SES integration for certificate delivery notifications
+
+#### Key Features Planned:
+- **Automatic Triggers**: Generate certificates on course completion (100% progress)
+- **Custom Templates**: Tier-specific designs (Bronze/Silver/Gold)
+- **Security Features**: Watermarks, QR codes, verification endpoints
+- **Cost Optimization**: Lambda reserved concurrency, S3 lifecycle policies
+- **Analytics Tracking**: DynamoDB for certificate access metrics
+
+#### WordPress Integration:
+- **New Class**: `class-certificate-manager.php` for API communication
+- **Frontend UI**: Certificate request buttons and viewer pages
+- **AJAX Handlers**: Real-time certificate generation status
+- **Admin Controls**: Certificate management in course admin
+
 ### Phase 3: Advanced Features
-- **AWS Lambda Integration**: Serverless processing functions (Issue #2)
 - **Enhanced Webhook Events**: Extended GHL event type support
 - **Bulk Operations**: Mass contact synchronization tools
 - **Advanced Reporting**: Analytics and insights dashboard

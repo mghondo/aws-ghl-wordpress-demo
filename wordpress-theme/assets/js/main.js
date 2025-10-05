@@ -54,9 +54,33 @@
   document.querySelectorAll('.navmenu .toggle-dropdown').forEach(navmenu => {
     navmenu.addEventListener('click', function(e) {
       e.preventDefault();
-      this.parentNode.classList.toggle('active');
-      this.parentNode.nextElementSibling.classList.toggle('dropdown-active');
-      e.stopImmediatePropagation();
+      e.stopPropagation();
+      
+      // Get the parent li element
+      let parentLi = this.closest('li');
+      if (!parentLi) return;
+      
+      // Toggle active class on the li
+      parentLi.classList.toggle('active');
+      
+      // Find and toggle the dropdown menu
+      let dropdownMenu = parentLi.querySelector('ul');
+      if (dropdownMenu) {
+        dropdownMenu.classList.toggle('dropdown-active');
+      }
+      
+      // Rotate the chevron icon
+      this.classList.toggle('rotate');
+    });
+  });
+  
+  // Prevent dropdown links from closing the menu on mobile
+  document.querySelectorAll('.navmenu .dropdown a').forEach(link => {
+    link.addEventListener('click', function(e) {
+      // Only prevent default for toggle icons
+      if (this.querySelector('.toggle-dropdown')) {
+        e.preventDefault();
+      }
     });
   });
 

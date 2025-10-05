@@ -117,6 +117,8 @@ class Clarity_AWS_GHL_Integration {
         // Course system includes
         require_once CLARITY_AWS_GHL_PLUGIN_DIR . 'includes/class-database-courses.php';
         require_once CLARITY_AWS_GHL_PLUGIN_DIR . 'includes/class-course-manager.php';
+        require_once CLARITY_AWS_GHL_PLUGIN_DIR . 'includes/class-course-routing.php';
+        require_once CLARITY_AWS_GHL_PLUGIN_DIR . 'includes/class-contact-form-handler.php';
         require_once CLARITY_AWS_GHL_PLUGIN_DIR . 'includes/class-lesson-handler.php';
         require_once CLARITY_AWS_GHL_PLUGIN_DIR . 'includes/class-progress-tracker.php';
         require_once CLARITY_AWS_GHL_PLUGIN_DIR . 'includes/class-frontend-templates.php';

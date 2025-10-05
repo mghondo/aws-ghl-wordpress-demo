@@ -21,6 +21,9 @@ if (!is_user_logged_in() && !$is_demo) {
 // Get course ID from URL parameter (default to 2 for testing)
 $course_id = isset($_GET['course_id']) ? intval($_GET['course_id']) : 2;
 
+// Initialize course routing for intelligent cart
+$course_routing = new Clarity_AWS_GHL_Course_Routing();
+
 // Get course data
 global $wpdb;
 $courses_table = $wpdb->prefix . 'clarity_courses';
@@ -34,6 +37,10 @@ if (!$course) {
     wp_redirect(home_url('/dashboard'));
     exit;
 }
+
+// Build intelligent cart with bundling
+$user_id = is_user_logged_in() ? get_current_user_id() : 0;
+$cart = $course_routing->build_checkout_cart($user_id, $course_id);
 
 // Check if already enrolled (skip in demo mode)
 $enrollments_table = $wpdb->prefix . 'clarity_course_enrollments';
@@ -67,18 +74,12 @@ if (isset($_POST['process_payment']) && !$is_demo) {
     // Verify nonce
     if (wp_verify_nonce($_POST['payment_nonce'], 'process_mock_payment')) {
         
-        // Create enrollment record
-        $enrollment_data = array(
-            'user_id' => get_current_user_id(),
-            'course_id' => $course_id,
-            'enrollment_date' => current_time('mysql'),
-            'enrollment_status' => 'active',
-            'payment_status' => 'paid',
-            'payment_amount' => $course->course_price,
-            'progress_percentage' => 0
+        // Process enrollment for all courses in cart
+        $enrollment_ids = $course_routing->process_post_payment_enrollment(
+            get_current_user_id(),
+            $cart['courses'],
+            $cart['total']
         );
-        
-        $wpdb->insert($enrollments_table, $enrollment_data);
         
         // Redirect to dashboard with success
         wp_redirect(home_url('/dashboard?enrolled=success'));
@@ -105,28 +106,63 @@ get_header();
                 <!-- Course Summary -->
                 <div class="course-summary">
                     <h2>Order Summary</h2>
-                    <div class="course-details">
-                        <div class="row">
-                            <?php if (!empty($course->featured_image)): ?>
-                            <div class="col-md-3">
-                                <img src="<?php echo esc_attr($course->featured_image); ?>" 
-                                     alt="<?php echo esc_attr($course->course_title); ?>" 
-                                     class="course-thumbnail">
-                            </div>
-                            <div class="col-md-9">
-                            <?php else: ?>
-                            <div class="col-md-12">
-                            <?php endif; ?>
-                                <h3><?php echo esc_html($course->course_title); ?></h3>
-                                <p class="course-desc"><?php echo esc_html($course->course_description); ?></p>
-                                <div class="course-price">
-                                    <?php if ($course->course_price == 0): ?>
-                                        <span class="price-free">FREE</span>
-                                    <?php else: ?>
-                                        <span class="price-amount">$<?php echo number_format($course->course_price, 0); ?></span>
-                                    <?php endif; ?>
+                    
+                    <?php if (!empty($cart['bundle_message'])): ?>
+                    <div class="bundle-message">
+                        <i class="bi bi-info-circle"></i>
+                        <?php echo esc_html($cart['bundle_message']); ?>
+                    </div>
+                    <?php endif; ?>
+                    
+                    <div class="cart-items">
+                        <?php foreach ($cart['courses'] as $cart_course): ?>
+                        <div class="cart-item">
+                            <div class="row align-items-center">
+                                <?php if (!empty($cart_course->featured_image)): ?>
+                                <div class="col-md-2">
+                                    <img src="<?php echo esc_attr($cart_course->featured_image); ?>" 
+                                         alt="<?php echo esc_attr($cart_course->course_title); ?>" 
+                                         class="cart-item-thumbnail">
+                                </div>
+                                <div class="col-md-10">
+                                <?php else: ?>
+                                <div class="col-md-12">
+                                <?php endif; ?>
+                                    <div class="cart-item-details">
+                                        <h4><?php echo esc_html($cart_course->course_title); ?></h4>
+                                        <p class="cart-item-desc"><?php echo esc_html($cart_course->course_description); ?></p>
+                                        <div class="cart-item-price">
+                                            <?php if ($cart_course->course_price == 0): ?>
+                                                <span class="badge bg-success">FREE</span>
+                                            <?php else: ?>
+                                                <span class="price">$<?php echo number_format($cart_course->course_price, 0); ?></span>
+                                            <?php endif; ?>
+                                            <?php if ($cart_course->course_tier == 1): ?>
+                                                <span class="badge bg-info ms-2">Prerequisite</span>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+                    
+                    <!-- Price Breakdown -->
+                    <div class="price-breakdown">
+                        <?php if ($cart['discount'] > 0): ?>
+                        <div class="price-line">
+                            <span>Subtotal:</span>
+                            <span>$<?php echo number_format($cart['subtotal'], 2); ?></span>
+                        </div>
+                        <div class="price-line discount">
+                            <span>Bundle Discount (<?php echo $cart['discount_percentage']; ?>%):</span>
+                            <span>-$<?php echo number_format($cart['discount'], 2); ?></span>
+                        </div>
+                        <?php endif; ?>
+                        <div class="price-line total">
+                            <span>Total:</span>
+                            <span class="total-amount">$<?php echo number_format($cart['total'], 2); ?></span>
                         </div>
                     </div>
                 </div>
@@ -206,7 +242,11 @@ get_header();
                             <button type="submit" name="process_payment" class="btn btn-primary btn-submit">
                                 <span class="button-text">
                                     <i class="bi bi-lock"></i>
-                                    Process Payment - $<?php echo number_format($course->course_price, 0); ?>
+                                    <?php if ($cart['total'] == 0): ?>
+                                        Start Learning Free
+                                    <?php else: ?>
+                                        Process Payment - $<?php echo number_format($cart['total'], 2); ?>
+                                    <?php endif; ?>
                                 </span>
                                 <span class="spinner-border spinner-border-sm" role="status" style="display: none;">
                                     <span class="visually-hidden">Processing...</span>
@@ -265,33 +305,88 @@ get_header();
     color: #2c3e50;
 }
 
-.course-details {
+.bundle-message {
+    background: #d1ecf1;
+    border: 1px solid #bee5eb;
+    color: #0c5460;
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-size: 14px;
+}
+
+.bundle-message i {
+    margin-right: 8px;
+}
+
+.cart-items {
     border-top: 1px solid #e9ecef;
     padding-top: 20px;
 }
 
-.course-thumbnail {
+.cart-item {
+    padding: 15px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.cart-item:last-child {
+    border-bottom: none;
+}
+
+.cart-item-thumbnail {
     width: 100%;
-    height: 120px;
+    height: 80px;
     object-fit: cover;
     border-radius: 8px;
 }
 
-.course-details h3 {
-    font-size: 20px;
+.cart-item h4 {
+    font-size: 18px;
     font-weight: 600;
     color: #2c3e50;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
 }
 
-.course-desc {
+.cart-item-desc {
     color: #6c757d;
-    margin-bottom: 15px;
-    font-size: 14px;
+    margin-bottom: 10px;
+    font-size: 13px;
 }
 
-.course-price {
-    margin-top: 15px;
+.cart-item-price .price {
+    font-size: 20px;
+    font-weight: 600;
+    color: #667eea;
+}
+
+.price-breakdown {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 2px solid #e9ecef;
+}
+
+.price-line {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    font-size: 16px;
+}
+
+.price-line.discount {
+    color: #28a745;
+    font-weight: 500;
+}
+
+.price-line.total {
+    font-size: 20px;
+    font-weight: 700;
+    padding-top: 12px;
+    border-top: 1px solid #e9ecef;
+    margin-top: 8px;
+}
+
+.total-amount {
+    color: #667eea;
 }
 
 .price-amount {

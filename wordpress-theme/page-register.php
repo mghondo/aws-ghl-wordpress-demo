@@ -135,11 +135,26 @@ if (isset($_POST['register_student'])) {
                 $user = wp_signon($creds, false);
                 
                 if (!is_wp_error($user)) {
-                    // Successful registration and login - redirect BEFORE any output
+                    // Successful registration and login
+                    // Check for redirect parameters in URL to determine where to send user
+                    $redirect_to = isset($_GET['redirect_to']) ? $_GET['redirect_to'] : '';
+                    $checkout_course = isset($_GET['checkout_course']) ? intval($_GET['checkout_course']) : 0;
+                    
                     while (ob_get_level()) {
                         ob_end_clean();
                     }
-                    wp_redirect(home_url('/dashboard?welcome=1'));
+                    
+                    // Determine redirect based on registration flow
+                    if ($checkout_course > 0 && $checkout_course > 1) {
+                        // User was registering to purchase a paid course (Tier 2 or 3)
+                        wp_redirect(home_url('/checkout?course_id=' . $checkout_course));
+                    } elseif (!empty($redirect_to) && strpos($redirect_to, 'funnel') !== false) {
+                        // User came from a funnel page, redirect back there
+                        wp_redirect($redirect_to);
+                    } else {
+                        // Default redirect to dashboard
+                        wp_redirect(home_url('/dashboard?welcome=1'));
+                    }
                     exit;
                 } else {
                     // Account created but auto-login failed - still redirect to prevent re-submission

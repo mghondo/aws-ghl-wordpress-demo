@@ -314,19 +314,25 @@ class Clarity_Bootstrap_Walker extends Walker_Nav_Menu {
         $attributes .= ! empty($item->xfn)        ? ' rel="'    . esc_attr($item->xfn        ) .'"' : '';
         $attributes .= ! empty($item->url)        ? ' href="'   . esc_attr($item->url        ) .'"' : '';
         
+        // Don't add Bootstrap dropdown attributes on mobile
         if ($has_children && $depth === 0) {
-            $attributes .= ' class="dropdown-toggle" data-bs-toggle="dropdown"';
+            $attributes .= ' class="dropdown-toggle"';
         }
         
         $item_output = $args->before;
-        $item_output .= '<a'. $attributes .'>';
-        $item_output .= $args->link_before . apply_filters('the_title', $item->title, $item->ID) . $args->link_after;
         
+        // For mobile menu with children, make the link and toggle separate
         if ($has_children) {
-            $item_output .= ' <i class="bi bi-chevron-down toggle-dropdown"></i>';
+            $item_output .= '<a'. $attributes .'>';
+            $item_output .= $args->link_before . apply_filters('the_title', $item->title, $item->ID) . $args->link_after;
+            $item_output .= '</a>';
+            $item_output .= '<i class="bi bi-chevron-down toggle-dropdown"></i>';
+        } else {
+            $item_output .= '<a'. $attributes .'>';
+            $item_output .= $args->link_before . apply_filters('the_title', $item->title, $item->ID) . $args->link_after;
+            $item_output .= '</a>';
         }
         
-        $item_output .= '</a>';
         $item_output .= $args->after;
         
         $output .= apply_filters('walker_nav_menu_start_el', $item_output, $item, $depth, $args);

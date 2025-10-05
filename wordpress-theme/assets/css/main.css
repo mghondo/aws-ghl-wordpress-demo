@@ -480,6 +480,40 @@ h6 {
   .mobile-nav-active .navmenu>ul {
     display: block;
   }
+  
+  /* Mobile dropdown toggle styling */
+  .navmenu li {
+    position: relative;
+  }
+  
+  .navmenu .toggle-dropdown {
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 14px;
+    cursor: pointer;
+    padding: 10px;
+    transition: transform 0.3s ease;
+    color: var(--nav-dropdown-color);
+  }
+  
+  .navmenu .toggle-dropdown.rotate {
+    transform: translateY(-50%) rotate(180deg);
+  }
+  
+  .navmenu .toggle-dropdown:hover {
+    color: var(--nav-dropdown-hover-color);
+  }
+  
+  .navmenu li.dropdown {
+    padding-right: 40px;
+  }
+  
+  .navmenu .dropdown a {
+    display: inline-block;
+    width: calc(100% - 40px);
+  }
 }
 
 /*--------------------------------------------------------------

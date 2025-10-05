@@ -40,6 +40,7 @@ $about_image = get_option('clarity_about_image', '');
 
 // Get courses from course manager
 $course_manager = new Clarity_AWS_GHL_Course_Manager();
+$course_routing = new Clarity_AWS_GHL_Course_Routing();
 $courses = $course_manager->get_all_courses(array('status' => 'published'));
 
 // DEBUG: Removed forced slideshow setting - using admin panel setting
@@ -233,18 +234,24 @@ get_header(); ?>
             $delay = 100;
             foreach ($courses as $course): 
               $price_display = $course->course_price > 0 ? '$' . number_format($course->course_price, 0) : 'Free';
-              $course_url = home_url('/course/' . $course->course_slug);
+              // Use smart routing to determine URL based on user status
+              $course_url = $course_routing->get_course_click_route($course);
             ?>
             <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="<?php echo $delay; ?>">
-              <div class="service-item position-relative">
+              <div class="service-item position-relative course-card" data-course-id="<?php echo $course->id; ?>">
                 <div class="icon">
                   <i class="bi <?php echo esc_attr($course->course_icon ?: 'bi-mortarboard'); ?>"></i>
                 </div>
-                <a href="<?php echo esc_url($course_url); ?>" class="stretched-link">
+                <a href="<?php echo esc_url($course_url); ?>" class="stretched-link course-card-link">
                   <h3><?php echo esc_html($course->course_title); ?></h3>
                 </a>
                 <p><?php echo esc_html($course->course_description); ?></p>
                 <div class="price"><?php echo esc_html($price_display); ?></div>
+                <?php if (is_user_logged_in() && $course_routing->is_user_enrolled(get_current_user_id(), $course->id)): ?>
+                <div class="enrolled-badge">
+                  <i class="bi bi-check-circle-fill"></i> Enrolled
+                </div>
+                <?php endif; ?>
               </div>
             </div><!-- End Service Item -->
             <?php 
@@ -268,8 +275,8 @@ get_header(); ?>
 
       <!-- Section Title -->
       <div class="container section-title" data-aos="fade-up">
-        <h2>Contact</h2>
-        <p>Get in touch with our team</p>
+        <h2>Get Your Free Course</h2>
+        <p>Enter your email to get instant access to our Real Estate Foundations course</p>
       </div><!-- End Section Title -->
 
       <div class="container" data-aos="fade-up" data-aos-delay="100">
@@ -306,48 +313,281 @@ get_header(); ?>
           </div>
 
           <div class="col-lg-6">
-            <form action="" method="post" class="php-email-form" id="contact-form" data-aos="fade-up" data-aos-delay="200">
-              <div class="row gy-4">
-
-                <div class="col-md-6">
-                  <label for="name-field" class="pb-2">Your Name</label>
-                  <input type="text" name="name" id="name-field" class="form-control" required="">
-                </div>
-
-                <div class="col-md-6">
-                  <label for="email-field" class="pb-2">Your Email</label>
-                  <input type="email" class="form-control" name="email" id="email-field" required="">
-                </div>
-
-                <div class="col-md-12">
-                  <label for="subject-field" class="pb-2">Subject</label>
-                  <input type="text" class="form-control" name="subject" id="subject-field" required="">
-                </div>
-
-                <div class="col-md-12">
-                  <label for="message-field" class="pb-2">Message</label>
-                  <textarea class="form-control" name="message" rows="10" id="message-field" required=""></textarea>
-                </div>
-
-                <div class="col-md-12 text-center">
-                  <div class="loading">Loading</div>
-                  <div class="error-message"></div>
-                  <div class="sent-message">Your message has been sent. Thank you!</div>
-
-                  <div class="buttons">
-                    <a href="#" onclick="document.getElementById('contact-form').submit(); return false;" class="btn btn-primary" style="background: var(--accent-color); color: var(--contrast-color); border: 2px solid var(--accent-color);">Send Message</a>
+            <div class="lead-capture-card" data-aos="fade-up" data-aos-delay="200">
+              <div class="lead-capture-content">
+                <h3>Start Learning Today - It's Free!</h3>
+                <p>Join thousands of students already enrolled in our comprehensive real estate training program.</p>
+                
+                <form method="post" class="lead-capture-form" id="lead-capture-form">
+                  <?php wp_nonce_field('lead_capture_nonce', 'lead_nonce'); ?>
+                  
+                  <div class="email-input-group">
+                    <input type="email" 
+                           name="email" 
+                           id="email-field" 
+                           class="form-control" 
+                           placeholder="Enter your email address" 
+                           required>
+                    <button type="submit" 
+                            class="btn btn-primary" 
+                            id="lead-submit-btn">
+                      Learn More
+                      <i class="bi bi-arrow-right"></i>
+                    </button>
                   </div>
-
+                  
+                  <div class="form-messages">
+                    <div class="loading" style="display: none;">
+                      <i class="bi bi-hourglass-split"></i> Processing...
+                    </div>
+                    <div class="error-message"></div>
+                    <div class="sent-message" style="display: none;">
+                      <i class="bi bi-check-circle"></i> Success! Redirecting to your free course...
+                    </div>
+                  </div>
+                  
+                  <div class="privacy-notice">
+                    <i class="bi bi-shield-check"></i>
+                    <small>We respect your privacy. No spam, ever. Unsubscribe anytime.</small>
+                  </div>
+                </form>
+                
+                <div class="benefits-list">
+                  <h4>What you'll get:</h4>
+                  <ul>
+                    <li><i class="bi bi-check-circle-fill"></i> Free Real Estate Foundations Course</li>
+                    <li><i class="bi bi-check-circle-fill"></i> Access to exclusive content</li>
+                    <li><i class="bi bi-check-circle-fill"></i> Updates on new courses and features</li>
+                  </ul>
                 </div>
-
               </div>
-            </form>
-          </div><!-- End Contact Form -->
+            </div>
+          </div><!-- End Lead Capture Form -->
 
         </div>
 
       </div>
 
     </section><!-- /Contact Section -->
+
+<style>
+.course-card {
+    position: relative;
+}
+
+.enrolled-badge {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: #28a745;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 15px;
+    font-size: 12px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    z-index: 10;
+}
+
+.enrolled-badge i {
+    font-size: 14px;
+}
+
+/* Lead Capture Styles */
+.lead-capture-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 20px;
+    padding: 40px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+}
+
+.lead-capture-content h3 {
+    color: white;
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 15px;
+}
+
+.lead-capture-content > p {
+    color: rgba(255,255,255,0.9);
+    font-size: 16px;
+    margin-bottom: 30px;
+}
+
+.email-input-group {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.email-input-group .form-control {
+    flex: 1;
+    padding: 15px 20px;
+    border: none;
+    border-radius: 50px;
+    font-size: 16px;
+}
+
+.email-input-group .btn {
+    padding: 15px 30px;
+    border-radius: 50px;
+    background: white;
+    color: #667eea;
+    border: none;
+    font-weight: 600;
+    font-size: 16px;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+.email-input-group .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+}
+
+.email-input-group .btn i {
+    margin-left: 5px;
+}
+
+.form-messages {
+    margin: 15px 0;
+    text-align: center;
+}
+
+.form-messages .loading,
+.form-messages .error-message,
+.form-messages .sent-message {
+    padding: 12px;
+    border-radius: 10px;
+    font-weight: 500;
+}
+
+.form-messages .loading {
+    background: rgba(255,255,255,0.2);
+    color: white;
+}
+
+.form-messages .error-message {
+    background: rgba(248,215,218,0.9);
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.form-messages .sent-message {
+    background: rgba(212,237,218,0.9);
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.privacy-notice {
+    text-align: center;
+    color: rgba(255,255,255,0.8);
+    font-size: 13px;
+    margin-top: 15px;
+}
+
+.privacy-notice i {
+    margin-right: 5px;
+}
+
+.benefits-list {
+    margin-top: 30px;
+    padding-top: 30px;
+    border-top: 1px solid rgba(255,255,255,0.2);
+}
+
+.benefits-list h4 {
+    color: white;
+    font-size: 18px;
+    margin-bottom: 15px;
+}
+
+.benefits-list ul {
+    list-style: none;
+    padding: 0;
+}
+
+.benefits-list li {
+    color: rgba(255,255,255,0.9);
+    margin-bottom: 10px;
+}
+
+.benefits-list li i {
+    color: #28a745;
+    margin-right: 10px;
+}
+
+@media (max-width: 768px) {
+    .email-input-group {
+        flex-direction: column;
+    }
+    
+    .email-input-group .btn {
+        width: 100%;
+    }
+}
+</style>
+
+<script>
+jQuery(document).ready(function($) {
+    $('#lead-capture-form').on('submit', function(e) {
+        e.preventDefault();
+        
+        var form = $(this);
+        var submitBtn = $('#lead-submit-btn');
+        var loading = form.find('.loading');
+        var errorMessage = form.find('.error-message');
+        var sentMessage = form.find('.sent-message');
+        var originalBtnText = submitBtn.html();
+        
+        // Reset messages
+        errorMessage.hide().text('');
+        sentMessage.hide();
+        
+        // Show loading
+        loading.show();
+        submitBtn.prop('disabled', true).html('<i class="bi bi-hourglass-split"></i> Processing...');
+        
+        // Prepare form data
+        var formData = {
+            action: 'capture_lead_email',
+            nonce: $('#lead_nonce').val(),
+            email: $('#email-field').val()
+        };
+        
+        // Send AJAX request
+        $.ajax({
+            url: '<?php echo admin_url('admin-ajax.php'); ?>',
+            type: 'POST',
+            data: formData,
+            success: function(response) {
+                loading.hide();
+                
+                if (response.success) {
+                    // Show success message
+                    sentMessage.show();
+                    form[0].reset();
+                    
+                    // Redirect after 1.5 seconds
+                    setTimeout(function() {
+                        window.location.href = response.data.redirect;
+                    }, 1500);
+                } else {
+                    // Show error
+                    errorMessage.text(response.data || 'An error occurred. Please try again.').show();
+                    submitBtn.prop('disabled', false).html(originalBtnText);
+                }
+            },
+            error: function() {
+                loading.hide();
+                errorMessage.text('Connection error. Please try again.').show();
+                submitBtn.prop('disabled', false).html(originalBtnText);
+            }
+        });
+    });
+});
+</script>
 
 <?php get_footer(); ?>

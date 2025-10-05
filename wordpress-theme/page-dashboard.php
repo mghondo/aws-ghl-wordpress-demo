@@ -19,6 +19,9 @@ if (!$current_user_id) {
 // Get current user data
 $current_user = wp_get_current_user();
 
+// Initialize course routing
+$course_routing = new Clarity_AWS_GHL_Course_Routing();
+
 // Database queries
 global $wpdb;
 $courses_table = $wpdb->prefix . 'clarity_courses';
@@ -109,7 +112,9 @@ get_header();
                 $prerequisites_met = check_prerequisites_met($course->course_tier, $user_enrollments, $courses);
                 $is_completed = $enrollment && !empty($enrollment->completion_date);
                 $progress = $enrollment ? $enrollment->progress_percentage : 0;
-                $course_url = home_url('/course/' . $course->course_slug);
+                
+                // Use smart routing to determine URL
+                $course_url = $course_routing->get_course_click_route($course);
                 
                 // Determine course state
                 $state = '';
@@ -126,11 +131,8 @@ get_header();
             
             <div class="col-lg-4 col-md-6">
                 <div class="course-card <?php echo $state; ?>" 
-                     <?php if ($state === 'available'): ?>
-                         data-funnel-url="<?php echo home_url('/funnel/' . $course->course_slug); ?>" 
-                         style="cursor: pointer;" 
-                         onclick="window.location.href='<?php echo home_url('/funnel/' . $course->course_slug); ?>'"
-                     <?php endif; ?>>
+                     data-course-url="<?php echo esc_url($course_url); ?>" 
+                     style="cursor: pointer;">
                     <!-- Course Image -->
                     <div class="course-image-wrapper">
                         <?php 
@@ -228,32 +230,37 @@ get_header();
                         <!-- Action Button -->
                         <div class="course-action">
                             <?php if ($state === 'completed'): ?>
-                                <a href="<?php echo esc_url($course_url); ?>" class="btn btn-outline-success w-100">
+                                <a href="<?php echo esc_url($course_url); ?>" class="btn btn-outline-success w-100 course-btn">
                                     <i class="bi bi-arrow-repeat"></i> Review Course
                                 </a>
                                 <?php 
                                 $next_course = get_next_course($course->course_tier, $courses);
-                                if ($next_course && !isset($user_enrollments[$next_course->id])): 
+                                if ($next_course): 
+                                    $next_course_url = $course_routing->get_course_click_route($next_course);
                                 ?>
-                                    <a href="<?php echo home_url('/funnel/' . $next_course->course_slug); ?>" 
+                                    <a href="<?php echo esc_url($next_course_url); ?>" 
                                        class="btn btn-primary w-100 mt-2">
                                         <i class="bi bi-arrow-right-circle"></i> 
-                                        Enroll in <?php echo esc_html($next_course->course_title); ?>
+                                        <?php if (isset($user_enrollments[$next_course->id])): ?>
+                                            Continue <?php echo esc_html($next_course->course_title); ?>
+                                        <?php else: ?>
+                                            Enroll in <?php echo esc_html($next_course->course_title); ?>
+                                        <?php endif; ?>
                                     </a>
                                 <?php endif; ?>
                                 
                             <?php elseif ($state === 'in-progress'): ?>
-                                <a href="<?php echo esc_url($course_url); ?>" class="btn btn-primary w-100">
+                                <a href="<?php echo esc_url($course_url); ?>" class="btn btn-primary w-100 course-btn">
                                     <i class="bi bi-play-fill"></i> Continue Learning
                                 </a>
                                 
                             <?php elseif ($state === 'locked'): ?>
-                                <button class="btn btn-secondary w-100" disabled>
-                                    <i class="bi bi-lock"></i> Locked
-                                </button>
+                                <a href="<?php echo esc_url($course_url); ?>" class="btn btn-secondary w-100 course-btn">
+                                    <i class="bi bi-lock"></i> View Course Details
+                                </a>
                                 
                             <?php else: // available ?>
-                                <a href="<?php echo home_url('/funnel/' . $course->course_slug); ?>" class="btn btn-primary w-100">
+                                <a href="<?php echo esc_url($course_url); ?>" class="btn btn-primary w-100 course-btn">
                                     <?php if ($course->course_tier == 1): ?>
                                         <i class="bi bi-play-circle"></i> Start Free Course
                                     <?php else: ?>
@@ -569,5 +576,46 @@ get_header();
     }
 }
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle course card clicks
+    const courseCards = document.querySelectorAll('.course-card[data-course-url]');
+    
+    courseCards.forEach(card => {
+        // Make entire card clickable except for buttons
+        card.addEventListener('click', function(e) {
+            // Don't navigate if clicking on a button or link
+            if (e.target.closest('.course-btn') || e.target.closest('a')) {
+                return;
+            }
+            
+            const courseUrl = this.getAttribute('data-course-url');
+            if (courseUrl) {
+                window.location.href = courseUrl;
+            }
+        });
+        
+        // Add hover effect for clickable cards
+        if (card.hasAttribute('data-course-url')) {
+            card.style.cursor = 'pointer';
+        }
+    });
+    
+    // Add visual feedback on hover for ALL cards
+    const allCards = document.querySelectorAll('.course-card');
+    allCards.forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-8px)';
+            this.style.boxShadow = '0 20px 50px rgba(0,0,0,0.2)';
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(-5px)';
+            this.style.boxShadow = '0 15px 40px rgba(0,0,0,0.15)';
+        });
+    });
+});
+</script>
 
 <?php get_footer(); ?>
