@@ -127,6 +127,7 @@ class Clarity_AWS_GHL_Database_Courses {
             progress_percentage int(3) NOT NULL DEFAULT 0,
             certificate_issued tinyint(1) NOT NULL DEFAULT 0,
             certificate_url varchar(500) DEFAULT NULL,
+            certificate_number varchar(50) DEFAULT NULL,
             access_expires datetime DEFAULT NULL,
             enrollment_status varchar(20) NOT NULL DEFAULT 'active',
             payment_status varchar(20) DEFAULT 'pending',
@@ -138,7 +139,8 @@ class Clarity_AWS_GHL_Database_Courses {
             KEY user_id (user_id),
             KEY course_id (course_id),
             KEY enrollment_status (enrollment_status),
-            KEY completion_date (completion_date)
+            KEY completion_date (completion_date),
+            KEY certificate_number (certificate_number)
         ) $charset_collate;";
         
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
@@ -171,6 +173,16 @@ class Clarity_AWS_GHL_Database_Courses {
             // Add course_icon column
             $wpdb->query("ALTER TABLE {$this->courses_table} ADD COLUMN course_icon varchar(50) NOT NULL DEFAULT 'bi-mortarboard' AFTER course_price");
             error_log('Added course_icon column to courses table');
+        }
+        
+        // Check if certificate_number column exists in enrollments table
+        $cert_column_exists = $wpdb->get_results("SHOW COLUMNS FROM {$this->enrollments_table} LIKE 'certificate_number'");
+        
+        if (empty($cert_column_exists)) {
+            // Add certificate_number column
+            $wpdb->query("ALTER TABLE {$this->enrollments_table} ADD COLUMN certificate_number varchar(50) DEFAULT NULL AFTER certificate_url");
+            $wpdb->query("ALTER TABLE {$this->enrollments_table} ADD INDEX certificate_number (certificate_number)");
+            error_log('Added certificate_number column to enrollments table');
         }
     }
     

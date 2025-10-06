@@ -40,6 +40,7 @@ class Clarity_AWS_GHL_Progress_Tracker {
         add_action('wp_ajax_clarity_update_lesson_progress', array($this, 'ajax_update_lesson_progress'));
         add_action('wp_ajax_clarity_save_lesson_notes', array($this, 'ajax_save_lesson_notes'));
         add_action('wp_ajax_clarity_get_next_lesson', array($this, 'ajax_get_next_lesson'));
+        add_action('wp_ajax_clarity_generate_user_certificate', array($this, 'ajax_generate_user_certificate'));
         
         // Shortcodes
         add_shortcode('clarity_user_dashboard', array($this, 'render_user_dashboard'));
@@ -89,7 +90,10 @@ class Clarity_AWS_GHL_Progress_Tracker {
                 'error' => __('An error occurred', 'clarity-aws-ghl'),
                 'success' => __('Success!', 'clarity-aws-ghl'),
                 'confirm_complete' => __('Mark this lesson as complete?', 'clarity-aws-ghl'),
-                'lesson_completed' => __('Lesson completed!', 'clarity-aws-ghl')
+                'lesson_completed' => __('Lesson completed!', 'clarity-aws-ghl'),
+                'generating_certificate' => __('Generating certificate...', 'clarity-aws-ghl'),
+                'certificate_generated' => __('Certificate generated! Refreshing page...', 'clarity-aws-ghl'),
+                'certificate_error' => __('Failed to generate certificate', 'clarity-aws-ghl')
             )
         ));
     }
@@ -363,9 +367,15 @@ class Clarity_AWS_GHL_Progress_Tracker {
                             <?php _e('Course Complete!', 'clarity-aws-ghl'); ?>
                         </span>
                         <?php if ($navigation_data['certificate_url']): ?>
-                            <a href="<?php echo esc_url($navigation_data['certificate_url']); ?>" class="button certificate-download">
+                            <a href="<?php echo esc_url($navigation_data['certificate_url']); ?>" class="button button-primary certificate-download">
                                 <?php _e('Download Certificate', 'clarity-aws-ghl'); ?>
                             </a>
+                        <?php else: ?>
+                            <button type="button" class="button button-primary get-certificate" 
+                                    data-user-id="<?php echo get_current_user_id(); ?>" 
+                                    data-course-id="<?php echo esc_attr($course_id); ?>">
+                                <?php _e('Get Certificate', 'clarity-aws-ghl'); ?>
+                            </button>
                         <?php endif; ?>
                     </div>
                 <?php endif; ?>
@@ -569,22 +579,76 @@ class Clarity_AWS_GHL_Progress_Tracker {
         $lesson_id = intval($_POST['lesson_id']);
         $time_spent = intval($_POST['time_spent']);
         $position = intval($_POST['position']);
+        $is_completed = isset($_POST['is_completed']) ? (bool) $_POST['is_completed'] : false;
         
         global $wpdb;
         $tables = $this->db_courses->get_table_names();
         
-        // Update time tracking
+        // Get course_id for this lesson
+        $course_id = $wpdb->get_var($wpdb->prepare("
+            SELECT course_id FROM {$tables['lessons']} WHERE id = %d
+        ", $lesson_id));
+        
+        // Update time tracking and completion status
         $wpdb->query($wpdb->prepare("
             INSERT INTO {$tables['user_progress']} 
-            (user_id, lesson_id, time_spent_seconds, last_position_seconds, created_at)
-            VALUES (%d, %d, %d, %d, NOW())
+            (user_id, course_id, lesson_id, is_completed, completion_date, time_spent_seconds, last_position_seconds, created_at)
+            VALUES (%d, %d, %d, %d, %s, %d, %d, NOW())
             ON DUPLICATE KEY UPDATE 
+            is_completed = VALUES(is_completed),
+            completion_date = CASE WHEN VALUES(is_completed) = 1 AND is_completed = 0 THEN NOW() ELSE completion_date END,
             time_spent_seconds = time_spent_seconds + VALUES(time_spent_seconds),
             last_position_seconds = VALUES(last_position_seconds),
             updated_at = NOW()
-        ", $user_id, $lesson_id, $time_spent, $position));
+        ", $user_id, $course_id, $lesson_id, $is_completed, $is_completed ? current_time('mysql') : null, $time_spent, $position));
+        
+        // If lesson was just completed, check if course is now complete
+        if ($is_completed) {
+            $this->check_course_completion($user_id, $course_id);
+        }
         
         wp_send_json_success();
+    }
+    
+    /**
+     * Check if course is complete and trigger certificate generation
+     */
+    private function check_course_completion($user_id, $course_id) {
+        global $wpdb;
+        $tables = $this->db_courses->get_table_names();
+        
+        // Get total lessons in course
+        $total_lessons = $wpdb->get_var($wpdb->prepare("
+            SELECT COUNT(*) FROM {$tables['lessons']} WHERE course_id = %d
+        ", $course_id));
+        
+        // Get completed lessons for this user
+        $completed_lessons = $wpdb->get_var($wpdb->prepare("
+            SELECT COUNT(*) FROM {$tables['user_progress']} 
+            WHERE user_id = %d AND course_id = %d AND is_completed = 1
+        ", $user_id, $course_id));
+        
+        // Calculate progress percentage
+        $progress_percentage = $total_lessons > 0 ? round(($completed_lessons / $total_lessons) * 100) : 0;
+        
+        // Update enrollment progress
+        $wpdb->update(
+            $tables['enrollments'],
+            array(
+                'progress_percentage' => $progress_percentage,
+                'completion_date' => $progress_percentage >= 100 ? current_time('mysql') : null,
+                'updated_at' => current_time('mysql')
+            ),
+            array(
+                'user_id' => $user_id,
+                'course_id' => $course_id
+            )
+        );
+        
+        // If course is 100% complete, trigger certificate generation
+        if ($progress_percentage >= 100) {
+            do_action('clarity_course_completed', $user_id, $course_id);
+        }
     }
     
     public function ajax_save_lesson_notes() {
@@ -648,5 +712,60 @@ class Clarity_AWS_GHL_Progress_Tracker {
         }
         
         wp_send_json_error('No next lesson found');
+    }
+    
+    public function ajax_generate_user_certificate() {
+        check_ajax_referer('clarity_progress_nonce', 'nonce');
+        
+        $user_id = get_current_user_id();
+        if (!$user_id) {
+            wp_send_json_error('Not logged in');
+        }
+        
+        $course_id = intval($_POST['course_id']);
+        if (!$course_id) {
+            wp_send_json_error('Invalid course ID');
+        }
+        
+        // Verify the course is completed
+        global $wpdb;
+        $tables = $this->db_courses->get_table_names();
+        
+        $enrollment = $wpdb->get_row($wpdb->prepare("
+            SELECT * FROM {$tables['enrollments']} 
+            WHERE user_id = %d AND course_id = %d AND progress_percentage >= 100
+        ", $user_id, $course_id));
+        
+        if (!$enrollment) {
+            wp_send_json_error('Course not completed');
+        }
+        
+        // Check if certificate already exists (unless force regenerate)
+        $force_regenerate = isset($_POST['force_regenerate']) && $_POST['force_regenerate'] === 'true';
+        if (!empty($enrollment->certificate_url) && !$force_regenerate) {
+            wp_send_json_success(array(
+                'message' => 'Certificate already exists',
+                'certificate_url' => $enrollment->certificate_url
+            ));
+            return;
+        }
+        
+        // Generate certificate using the certificate manager
+        if (class_exists('Clarity_AWS_GHL_Certificate_Manager')) {
+            $cert_manager = new Clarity_AWS_GHL_Certificate_Manager();
+            $result = $cert_manager->generate_certificate($user_id, $course_id);
+            
+            if ($result['success']) {
+                wp_send_json_success(array(
+                    'message' => 'Certificate generated successfully',
+                    'certificate_url' => $result['certificate_url'],
+                    'certificate_number' => $result['certificate_number']
+                ));
+            } else {
+                wp_send_json_error($result['error']);
+            }
+        } else {
+            wp_send_json_error('Certificate manager not available');
+        }
     }
 }

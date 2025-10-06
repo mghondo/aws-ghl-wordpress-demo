@@ -354,6 +354,59 @@ if (class_exists('Clarity_AWS_GHL_Course_Manager')) {
                 endforeach; 
                 ?>
             </div>
+            
+            <!-- Certificate Section -->
+            <?php if ($progress_percentage >= 100 && $user_id): ?>
+                <div class="certificate-section">
+                    <div class="certificate-container">
+                        <div class="certificate-header">
+                            <div class="completion-badge">
+                                <i class="bi bi-award-fill"></i>
+                                <span>Course Complete!</span>
+                            </div>
+                            <p class="certificate-message">Congratulations! You've successfully completed all lessons in this course.</p>
+                        </div>
+                        
+                        <div class="certificate-actions">
+                            <?php 
+                            // Check if certificate already exists
+                            $has_certificate = false;
+                            $certificate_url = '';
+                            if ($enrollment && !empty($enrollment->certificate_url)) {
+                                $has_certificate = true;
+                                $certificate_url = $enrollment->certificate_url;
+                            }
+                            ?>
+                            
+                            <?php if ($has_certificate): ?>
+                                <div class="certificate-actions-group">
+                                    <a href="<?php echo esc_url($certificate_url); ?>" 
+                                       class="certificate-btn download-certificate" 
+                                       target="_blank">
+                                        <i class="bi bi-download"></i>
+                                        Download Certificate
+                                    </a>
+                                    <button type="button" 
+                                            class="certificate-btn regenerate-certificate" 
+                                            data-user-id="<?php echo $user_id; ?>" 
+                                            data-course-id="<?php echo $course->id; ?>">
+                                        <i class="bi bi-arrow-clockwise"></i>
+                                        Regenerate
+                                    </button>
+                                </div>
+                            <?php else: ?>
+                                <button type="button" 
+                                        class="certificate-btn get-certificate" 
+                                        data-user-id="<?php echo $user_id; ?>" 
+                                        data-course-id="<?php echo $course->id; ?>">
+                                    <i class="bi bi-award"></i>
+                                    Get Certificate
+                                </button>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+            <?php endif; ?>
         </div>
     </div>
 </div>
@@ -732,6 +785,92 @@ if (class_exists('Clarity_AWS_GHL_Course_Manager')) {
 
 .mark-incomplete-btn:hover {
     background: #c82333;
+}
+
+/* Certificate Section */
+.certificate-section {
+    margin-top: 3rem;
+    padding: 2rem 0;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 12px;
+    border: 2px solid #28a745;
+}
+
+.certificate-container {
+    text-align: center;
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.certificate-header .completion-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: #28a745;
+    color: white;
+    padding: 1rem 2rem;
+    border-radius: 50px;
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+.certificate-header .completion-badge i {
+    font-size: 1.5rem;
+}
+
+.certificate-message {
+    font-size: 1.1rem;
+    color: #666;
+    margin-bottom: 2rem;
+    line-height: 1.6;
+}
+
+.certificate-actions {
+    margin-top: 1.5rem;
+}
+
+.certificate-actions-group {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.certificate-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 1rem 2rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.certificate-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    color: white;
+    text-decoration: none;
+}
+
+.certificate-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.certificate-btn i {
+    font-size: 1.2rem;
 }
 
 /* Modal Styles */
@@ -1142,7 +1281,169 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     }
+    
+    // Certificate generation button
+    const getCertificateBtn = document.querySelector('.get-certificate');
+    if (getCertificateBtn) {
+        getCertificateBtn.addEventListener('click', function() {
+            const userId = this.getAttribute('data-user-id');
+            const courseId = this.getAttribute('data-course-id');
+            
+            generateCertificate(userId, courseId, this);
+        });
+    }
+    
+    // Certificate regeneration button
+    const regenerateCertificateBtn = document.querySelector('.regenerate-certificate');
+    if (regenerateCertificateBtn) {
+        regenerateCertificateBtn.addEventListener('click', function() {
+            if (confirm('Are you sure you want to regenerate your certificate? This will replace the existing one.')) {
+                const userId = this.getAttribute('data-user-id');
+                const courseId = this.getAttribute('data-course-id');
+                
+                regenerateCertificate(userId, courseId, this);
+            }
+        });
+    }
 });
+
+// Function to generate certificate
+function generateCertificate(userId, courseId, button) {
+    const originalText = button.innerHTML;
+    
+    button.disabled = true;
+    button.innerHTML = '<i class="bi bi-hourglass-split"></i> Generating certificate...';
+    
+    fetch('<?php echo admin_url('admin-ajax.php'); ?>', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+            action: 'clarity_generate_user_certificate',
+            course_id: courseId,
+            nonce: '<?php echo wp_create_nonce('clarity_progress_nonce'); ?>'
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Certificate response:', data);
+        if (data.success) {
+            // Replace button with download link
+            button.outerHTML = `
+                <a href="${data.data.certificate_url}" 
+                   class="certificate-btn download-certificate" 
+                   target="_blank">
+                    <i class="bi bi-download"></i>
+                    Download Certificate
+                </a>
+            `;
+            
+            // Show success message
+            showSuccessMessage('Certificate generated successfully!');
+            
+        } else {
+            button.disabled = false;
+            button.innerHTML = originalText;
+            alert('Failed to generate certificate: ' + (data.data || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Error generating certificate:', error);
+        button.disabled = false;
+        button.innerHTML = originalText;
+        alert('Error generating certificate');
+    });
+}
+
+// Function to regenerate certificate
+function regenerateCertificate(userId, courseId, button) {
+    const originalText = button.innerHTML;
+    
+    button.disabled = true;
+    button.innerHTML = '<i class="bi bi-hourglass-split"></i> Regenerating...';
+    
+    fetch('<?php echo admin_url('admin-ajax.php'); ?>', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+            action: 'clarity_generate_user_certificate',
+            course_id: courseId,
+            force_regenerate: 'true',
+            nonce: '<?php echo wp_create_nonce('clarity_progress_nonce'); ?>'
+        })
+    })
+    .then(response => {
+        console.log('Raw response:', response);
+        console.log('Response status:', response.status);
+        console.log('Response headers:', response.headers);
+        return response.text();
+    })
+    .then(responseText => {
+        console.log('Response text:', responseText);
+        try {
+            const data = JSON.parse(responseText);
+            console.log('Parsed JSON:', data);
+        if (data.success) {
+            // Update the download link
+            const downloadLink = document.querySelector('.download-certificate');
+            if (downloadLink) {
+                downloadLink.href = data.data.certificate_url;
+            }
+            
+            // Show success message
+            showSuccessMessage('Certificate regenerated successfully!');
+            
+            // Reset button
+            button.disabled = false;
+            button.innerHTML = originalText;
+            
+        } else {
+            button.disabled = false;
+            button.innerHTML = originalText;
+            alert('Failed to regenerate certificate: ' + (data.data || 'Unknown error'));
+        }
+        } catch (parseError) {
+            console.error('JSON Parse Error:', parseError);
+            console.error('Raw response that failed to parse:', responseText);
+            button.disabled = false;
+            button.innerHTML = originalText;
+            alert('Invalid response from server. Check console for details.');
+        }
+    })
+    .catch(error => {
+        console.error('Network Error:', error);
+        button.disabled = false;
+        button.innerHTML = originalText;
+        alert('Network error: ' + error.message);
+    });
+}
+
+// Function to show success message
+function showSuccessMessage(message) {
+    const successDiv = document.createElement('div');
+    successDiv.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #28a745;
+        color: white;
+        padding: 12px 20px;
+        border-radius: 4px;
+        z-index: 9999;
+        font-weight: 500;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    `;
+    successDiv.textContent = message;
+    
+    document.body.appendChild(successDiv);
+    
+    setTimeout(() => {
+        successDiv.remove();
+    }, 4000);
+}
 </script>
 
 <?php get_footer(); ?>

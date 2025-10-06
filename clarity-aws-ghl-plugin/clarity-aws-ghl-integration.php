@@ -98,6 +98,13 @@ class Clarity_AWS_GHL_Integration {
         add_action('wp_ajax_clarity_test_s3_connection', array($this, 'ajax_test_s3_connection'));
         add_action('wp_ajax_clarity_test_webhook', array($this, 'ajax_test_webhook'));
         add_action('wp_ajax_clarity_clear_logs', array($this, 'ajax_clear_logs'));
+        add_action('wp_ajax_clarity_test_certificate_endpoint', array($this, 'ajax_test_certificate_endpoint'));
+        add_action('wp_ajax_clarity_generate_user_certificate', array($this, 'ajax_generate_user_certificate'));
+        add_action('wp_ajax_clarity_fix_database_schema', array($this, 'ajax_fix_database_schema'));
+        add_action('wp_ajax_clarity_test_database_operations', array($this, 'ajax_test_database_operations'));
+        add_action('wp_ajax_clarity_clear_certificate_data', array($this, 'ajax_clear_certificate_data'));
+        add_action('wp_ajax_clarity_view_certificate_logs', array($this, 'ajax_view_certificate_logs'));
+        add_action('wp_ajax_clarity_fix_url_field_size', array($this, 'ajax_fix_url_field_size'));
     }
     
     /**
@@ -121,6 +128,7 @@ class Clarity_AWS_GHL_Integration {
         require_once CLARITY_AWS_GHL_PLUGIN_DIR . 'includes/class-contact-form-handler.php';
         require_once CLARITY_AWS_GHL_PLUGIN_DIR . 'includes/class-lesson-handler.php';
         require_once CLARITY_AWS_GHL_PLUGIN_DIR . 'includes/class-progress-tracker.php';
+        require_once CLARITY_AWS_GHL_PLUGIN_DIR . 'includes/class-certificate-manager.php';
         require_once CLARITY_AWS_GHL_PLUGIN_DIR . 'includes/class-frontend-templates.php';
         require_once CLARITY_AWS_GHL_PLUGIN_DIR . 'includes/class-user-manager.php';
         require_once CLARITY_AWS_GHL_PLUGIN_DIR . 'includes/class-frontend-scripts.php';
@@ -295,6 +303,11 @@ class Clarity_AWS_GHL_Integration {
         // General Settings
         register_setting('clarity_aws_ghl_general', 'clarity_debug_mode');
         register_setting('clarity_aws_ghl_general', 'clarity_log_retention_days');
+        
+        // Certificate Settings
+        register_setting('clarity_aws_ghl_certificates', 'clarity_certificate_lambda_endpoint');
+        register_setting('clarity_aws_ghl_certificates', 'clarity_certificate_enabled');
+        register_setting('clarity_aws_ghl_certificates', 'clarity_certificate_auto_generate');
     }
     
     /**
@@ -338,6 +351,15 @@ class Clarity_AWS_GHL_Integration {
             'manage_options',
             'clarity-aws-ghl-ghl',
             array($this, 'admin_ghl_settings_page')
+        );
+        
+        add_submenu_page(
+            'clarity-aws-ghl',
+            __('Certificate Settings', 'clarity-aws-ghl'),
+            __('Certificates', 'clarity-aws-ghl'),
+            'manage_options',
+            'clarity-aws-ghl-certificates',
+            array($this, 'admin_certificate_settings_page')
         );
         
         add_submenu_page(
@@ -433,6 +455,10 @@ class Clarity_AWS_GHL_Integration {
         $settings->render_ghl_page();
     }
     
+    public function admin_certificate_settings_page() {
+        $this->render_certificate_settings_page();
+    }
+    
     public function admin_logs_page() {
         $logs = new Clarity_AWS_GHL_Logs();
         $logs->render();
@@ -480,6 +506,373 @@ class Clarity_AWS_GHL_Integration {
         
         $result = $this->database->clear_webhook_logs();
         wp_send_json_success(array('message' => __('Logs cleared successfully', 'clarity-aws-ghl')));
+    }
+    
+    public function ajax_test_certificate_endpoint() {
+        check_ajax_referer('clarity_certificate_test_nonce', 'nonce');
+        
+        if (!current_user_can('manage_options')) {
+            wp_die(__('Insufficient permissions', 'clarity-aws-ghl'));
+        }
+        
+        $endpoint = sanitize_url($_POST['endpoint']);
+        
+        if (empty($endpoint)) {
+            wp_send_json_error(array('message' => __('No endpoint URL provided', 'clarity-aws-ghl')));
+        }
+        
+        // Test data for certificate generation
+        $test_data = array(
+            'recipient_name' => 'Test Student',
+            'course_title' => 'Test Course',
+            'completion_date' => date('Y-m-d'),
+            'tier_level' => 1,
+            'user_id' => 999,
+            'course_id' => 1
+        );
+        
+        // Make HTTP request to Lambda endpoint
+        $response = wp_remote_post($endpoint, array(
+            'method' => 'POST',
+            'headers' => array(
+                'Content-Type' => 'application/json',
+            ),
+            'body' => json_encode($test_data),
+            'timeout' => 30
+        ));
+        
+        if (is_wp_error($response)) {
+            wp_send_json_error(array('message' => __('Failed to connect to endpoint: ', 'clarity-aws-ghl') . $response->get_error_message()));
+        }
+        
+        $response_code = wp_remote_retrieve_response_code($response);
+        $response_body = wp_remote_retrieve_body($response);
+        
+        if ($response_code !== 200) {
+            wp_send_json_error(array('message' => sprintf(__('Endpoint returned error code %d: %s', 'clarity-aws-ghl'), $response_code, $response_body)));
+        }
+        
+        $data = json_decode($response_body, true);
+        
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            wp_send_json_error(array('message' => __('Invalid JSON response from endpoint', 'clarity-aws-ghl')));
+        }
+        
+        if (isset($data['certificate_url'])) {
+            wp_send_json_success(array('message' => sprintf(__('Test successful! Certificate generated: %s', 'clarity-aws-ghl'), $data['certificate_url'])));
+        } else {
+            wp_send_json_error(array('message' => __('Endpoint responded but did not return certificate_url', 'clarity-aws-ghl')));
+        }
+    }
+    
+    public function ajax_generate_user_certificate() {
+        check_ajax_referer('clarity_progress_nonce', 'nonce');
+        
+        $user_id = get_current_user_id();
+        if (!$user_id) {
+            wp_send_json_error('Not logged in');
+        }
+        
+        $course_id = intval($_POST['course_id']);
+        if (!$course_id) {
+            wp_send_json_error('Invalid course ID');
+        }
+        
+        // Verify the course is completed
+        global $wpdb;
+        $enrollments_table = $wpdb->prefix . 'clarity_course_enrollments';
+        
+        $enrollment = $wpdb->get_row($wpdb->prepare("
+            SELECT * FROM {$enrollments_table} 
+            WHERE user_id = %d AND course_id = %d AND progress_percentage >= 100
+        ", $user_id, $course_id));
+        
+        if (!$enrollment) {
+            wp_send_json_error('Course not completed');
+        }
+        
+        // Check if certificate already exists (unless force regenerate)
+        $force_regenerate = isset($_POST['force_regenerate']) && $_POST['force_regenerate'] === 'true';
+        if (!empty($enrollment->certificate_url) && !$force_regenerate) {
+            wp_send_json_success(array(
+                'message' => 'Certificate already exists',
+                'certificate_url' => $enrollment->certificate_url
+            ));
+            return;
+        }
+        
+        // Generate certificate using the certificate manager
+        if (class_exists('Clarity_AWS_GHL_Certificate_Manager')) {
+            $cert_manager = new Clarity_AWS_GHL_Certificate_Manager();
+            $result = $cert_manager->generate_certificate($user_id, $course_id);
+            
+            if ($result['success']) {
+                wp_send_json_success(array(
+                    'message' => 'Certificate generated successfully',
+                    'certificate_url' => $result['certificate_url'],
+                    'certificate_number' => $result['certificate_number']
+                ));
+            } else {
+                wp_send_json_error($result['error']);
+            }
+        } else {
+            wp_send_json_error('Certificate manager not available');
+        }
+    }
+    
+    public function ajax_fix_database_schema() {
+        check_ajax_referer('clarity_database_fix_nonce', 'nonce');
+        
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => __('Insufficient permissions', 'clarity-aws-ghl')));
+        }
+        
+        global $wpdb;
+        $enrollments_table = $wpdb->prefix . 'clarity_course_enrollments';
+        
+        // Check if column exists
+        $column_exists = $wpdb->get_results("SHOW COLUMNS FROM {$enrollments_table} LIKE 'certificate_number'");
+        
+        if (!empty($column_exists)) {
+            wp_send_json_success(array('message' => __('Certificate_number column already exists', 'clarity-aws-ghl')));
+            return;
+        }
+        
+        // Add the missing column
+        $result = $wpdb->query("ALTER TABLE {$enrollments_table} ADD COLUMN certificate_number varchar(50) DEFAULT NULL AFTER certificate_url");
+        
+        if ($result === false) {
+            wp_send_json_error(array('message' => __('Failed to add certificate_number column: ', 'clarity-aws-ghl') . $wpdb->last_error));
+            return;
+        }
+        
+        // Add index
+        $wpdb->query("ALTER TABLE {$enrollments_table} ADD INDEX certificate_number (certificate_number)");
+        
+        // Also increase certificate_url field size for long S3 URLs
+        $wpdb->query("ALTER TABLE {$enrollments_table} MODIFY COLUMN certificate_url TEXT");
+        
+        wp_send_json_success(array('message' => __('Certificate_number column added and certificate_url field expanded successfully! Page will reload...', 'clarity-aws-ghl')));
+    }
+    
+    public function ajax_test_database_operations() {
+        check_ajax_referer('clarity_database_test_nonce', 'nonce');
+        
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => __('Insufficient permissions', 'clarity-aws-ghl')));
+        }
+        
+        global $wpdb;
+        $enrollments_table = $wpdb->prefix . 'clarity_course_enrollments';
+        $user_id = get_current_user_id();
+        $course_id = 1; // Test with course 1
+        
+        $results = array();
+        
+        // Test 1: Check if enrollment exists
+        $existing = $wpdb->get_row($wpdb->prepare("
+            SELECT * FROM {$enrollments_table} WHERE user_id = %d AND course_id = %d
+        ", $user_id, $course_id));
+        
+        if ($existing) {
+            $results[] = "✓ Found existing enrollment (ID: {$existing->id})";
+            
+            // Test 2: Try updating existing enrollment
+            $update_result = $wpdb->update(
+                $enrollments_table,
+                array(
+                    'certificate_issued' => 1,
+                    'certificate_url' => 'https://test-update.com',
+                    'certificate_number' => 'TEST-123',
+                    'updated_at' => current_time('mysql')
+                ),
+                array('user_id' => $user_id, 'course_id' => $course_id),
+                array('%d', '%s', '%s', '%s'),
+                array('%d', '%d')
+            );
+            
+            if ($update_result === false) {
+                $results[] = "❌ Update failed: " . $wpdb->last_error;
+            } else {
+                $results[] = "✓ Update successful (rows affected: $update_result)";
+            }
+        } else {
+            $results[] = "⚠️ No enrollment found for user $user_id, course $course_id";
+            
+            // Test 3: Try creating enrollment
+            $insert_result = $wpdb->insert(
+                $enrollments_table,
+                array(
+                    'user_id' => $user_id,
+                    'course_id' => $course_id,
+                    'enrollment_date' => current_time('mysql'),
+                    'completion_date' => current_time('mysql'),
+                    'progress_percentage' => 100,
+                    'certificate_issued' => 1,
+                    'certificate_url' => 'https://test-insert.com',
+                    'certificate_number' => 'TEST-INSERT-123',
+                    'enrollment_status' => 'active',
+                    'created_at' => current_time('mysql'),
+                    'updated_at' => current_time('mysql')
+                ),
+                array('%d', '%d', '%s', '%s', '%d', '%d', '%s', '%s', '%s', '%s', '%s')
+            );
+            
+            if ($insert_result === false) {
+                $results[] = "❌ Insert failed: " . $wpdb->last_error;
+            } else {
+                $results[] = "✓ Insert successful (ID: " . $wpdb->insert_id . ")";
+            }
+        }
+        
+        $message = implode('<br>', $results);
+        wp_send_json_success(array('message' => $message));
+    }
+    
+    public function ajax_clear_certificate_data() {
+        check_ajax_referer('clarity_clear_certificate_nonce', 'nonce');
+        
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => __('Insufficient permissions', 'clarity-aws-ghl')));
+        }
+        
+        global $wpdb;
+        $enrollments_table = $wpdb->prefix . 'clarity_course_enrollments';
+        $progress_table = $wpdb->prefix . 'clarity_user_progress';
+        $user_id = get_current_user_id();
+        
+        $results = array();
+        
+        // Clear certificate data from enrollments (keep enrollment but reset certificate fields)
+        $update_result = $wpdb->update(
+            $enrollments_table,
+            array(
+                'certificate_issued' => 0,
+                'certificate_url' => null,
+                'certificate_number' => null,
+                'completion_date' => null,
+                'progress_percentage' => 0,
+                'updated_at' => current_time('mysql')
+            ),
+            array('user_id' => $user_id),
+            array('%d', '%s', '%s', '%s', '%d', '%s'),
+            array('%d')
+        );
+        
+        if ($update_result === false) {
+            wp_send_json_error(array('message' => 'Failed to clear certificate data: ' . $wpdb->last_error));
+        }
+        
+        $results[] = "✓ Cleared certificate data for $update_result enrollment(s)";
+        
+        // Clear all progress data for this user
+        $delete_result = $wpdb->delete(
+            $progress_table,
+            array('user_id' => $user_id),
+            array('%d')
+        );
+        
+        if ($delete_result === false) {
+            $results[] = "⚠️ Warning: Could not clear progress data: " . $wpdb->last_error;
+        } else {
+            $results[] = "✓ Cleared $delete_result lesson progress record(s)";
+        }
+        
+        $results[] = "✓ Your account remains intact with admin privileges";
+        $results[] = "✓ You can now re-enroll and generate fresh certificates";
+        
+        $message = implode('<br>', $results);
+        wp_send_json_success(array('message' => $message . '<br><br>🔄 Page will reload in 2 seconds...'));
+    }
+    
+    public function ajax_view_certificate_logs() {
+        check_ajax_referer('clarity_logs_nonce', 'nonce');
+        
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => __('Insufficient permissions', 'clarity-aws-ghl')));
+        }
+        
+        // Read PHP error log to capture error_log() calls
+        $logs = array();
+        
+        // Try different possible log locations
+        $log_files = array(
+            ini_get('error_log'),
+            ABSPATH . 'wp-content/debug.log',
+            '/tmp/php_errors.log',
+            '/var/log/php_errors.log'
+        );
+        
+        $found_logs = false;
+        
+        foreach ($log_files as $log_file) {
+            if ($log_file && file_exists($log_file) && is_readable($log_file)) {
+                $content = file_get_contents($log_file);
+                
+                // Filter for certificate-related logs only
+                $lines = explode("\n", $content);
+                $certificate_lines = array_filter($lines, function($line) {
+                    return strpos($line, 'Certificate Manager') !== false;
+                });
+                
+                if (!empty($certificate_lines)) {
+                    $logs[] = "<strong>From: $log_file</strong>";
+                    $logs = array_merge($logs, array_slice(array_reverse($certificate_lines), 0, 20)); // Last 20 entries
+                    $found_logs = true;
+                    break;
+                }
+            }
+        }
+        
+        // Check for stored debug information
+        $last_error = get_option('clarity_last_certificate_error', null);
+        
+        if ($last_error) {
+            $logs[] = "<strong style='color: red;'>LAST CERTIFICATE ERROR:</strong>";
+            $logs[] = "<strong>Timestamp:</strong> " . $last_error['timestamp'];
+            $logs[] = "<strong>User ID:</strong> " . $last_error['user_id'];
+            $logs[] = "<strong>Course ID:</strong> " . $last_error['course_id'];
+            $logs[] = "<strong>Certificate URL from Lambda:</strong> " . $last_error['certificate_url'];
+            $logs[] = "<strong>Certificate Number from Lambda:</strong> " . $last_error['certificate_number'];
+            $logs[] = "<strong>Full Lambda Response:</strong>";
+            $logs[] = "<pre style='background: #f0f0f0; padding: 10px; border-radius: 4px; font-size: 11px;'>" . 
+                     htmlspecialchars(json_encode($last_error['lambda_response'], JSON_PRETTY_PRINT)) . "</pre>";
+            $logs[] = "";
+        }
+        
+        if (!$found_logs && !$last_error) {
+            // If no logs found, create a mock log entry to test logging
+            error_log("Certificate Manager: Test log entry at " . current_time('mysql'));
+            $logs[] = "No certificate logs found. Logs may not be enabled.";
+            $logs[] = "Created test log entry. Try regenerating certificate again.";
+            $logs[] = "";
+            $logs[] = "To enable logging, add to wp-config.php:";
+            $logs[] = "define('WP_DEBUG', true);";
+            $logs[] = "define('WP_DEBUG_LOG', true);";
+        }
+        
+        $logs_html = implode('<br>', $logs);
+        wp_send_json_success(array('logs' => $logs_html));
+    }
+    
+    public function ajax_fix_url_field_size() {
+        check_ajax_referer('clarity_fix_url_nonce', 'nonce');
+        
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => __('Insufficient permissions', 'clarity-aws-ghl')));
+        }
+        
+        global $wpdb;
+        $enrollments_table = $wpdb->prefix . 'clarity_course_enrollments';
+        
+        // Expand certificate_url field from varchar(500) to TEXT
+        $result = $wpdb->query("ALTER TABLE {$enrollments_table} MODIFY COLUMN certificate_url TEXT");
+        
+        if ($result === false) {
+            wp_send_json_error(array('message' => 'Failed to expand certificate_url field: ' . $wpdb->last_error));
+        }
+        
+        wp_send_json_success(array('message' => 'Certificate URL field expanded to TEXT successfully! Now try regenerating your certificate.'));
     }
     
     /**
@@ -542,6 +935,7 @@ class Clarity_AWS_GHL_Integration {
         global $wpdb;
         
         $courses_table = $wpdb->prefix . 'clarity_courses';
+        $enrollments_table = $wpdb->prefix . 'clarity_course_enrollments';
         
         // Check if course_icon column exists
         $column_exists = $wpdb->get_results("SHOW COLUMNS FROM {$courses_table} LIKE 'course_icon'");
@@ -556,6 +950,25 @@ class Clarity_AWS_GHL_Integration {
             }
         } else {
             error_log('Force migration: course_icon column already exists');
+        }
+        
+        // Check if certificate_number column exists in enrollments table
+        $cert_column_exists = $wpdb->get_results("SHOW COLUMNS FROM {$enrollments_table} LIKE 'certificate_number'");
+        
+        if (empty($cert_column_exists)) {
+            // Add certificate_number column
+            $result = $wpdb->query("ALTER TABLE {$enrollments_table} ADD COLUMN certificate_number varchar(50) DEFAULT NULL AFTER certificate_url");
+            error_log('Force migration: Added certificate_number column. Result: ' . $result);
+            
+            if ($result !== false) {
+                // Add index for certificate_number
+                $wpdb->query("ALTER TABLE {$enrollments_table} ADD INDEX certificate_number (certificate_number)");
+                error_log('Force migration: Added certificate_number index');
+            } else {
+                error_log('Force migration: Failed to add certificate_number column. Error: ' . $wpdb->last_error);
+            }
+        } else {
+            error_log('Force migration: certificate_number column already exists');
         }
     }
     
@@ -596,7 +1009,10 @@ class Clarity_AWS_GHL_Integration {
             'clarity_debug_mode',
             'clarity_log_retention_days',
             'clarity_ghl_webhook_logs',
-            'clarity_aws_ghl_course_db_version'
+            'clarity_aws_ghl_course_db_version',
+            'clarity_certificate_enabled',
+            'clarity_certificate_auto_generate',
+            'clarity_certificate_lambda_endpoint'
         );
         
         foreach ($options as $option) {
@@ -617,7 +1033,10 @@ class Clarity_AWS_GHL_Integration {
             'clarity_ghl_webhook_enabled' => true,
             'clarity_ghl_create_contacts' => true,
             'clarity_debug_mode' => false,
-            'clarity_log_retention_days' => 30
+            'clarity_log_retention_days' => 30,
+            'clarity_certificate_enabled' => true,
+            'clarity_certificate_auto_generate' => true,
+            'clarity_certificate_lambda_endpoint' => ''
         );
         
         foreach ($defaults as $option => $value) {
@@ -1060,6 +1479,425 @@ class Clarity_AWS_GHL_Integration {
                     $('#about_image_preview').html('<div style="width: 300px; height: 200px; border: 2px dashed #ccc; display: flex; align-items: center; justify-content: center; color: #666;">No image selected</div>');
                     $('#upload_about_image').text('Upload Image');
                     $(this).hide();
+                });
+            });
+            </script>
+        </div>
+        <?php
+    }
+    
+    /**
+     * Render certificate settings page
+     */
+    public function render_certificate_settings_page() {
+        // Handle form submission
+        if (isset($_POST['submit']) && wp_verify_nonce($_POST['_wpnonce'], 'clarity_certificate_settings')) {
+            $lambda_endpoint = esc_url_raw($_POST['certificate_lambda_endpoint']);
+            $certificate_enabled = isset($_POST['certificate_enabled']) ? 1 : 0;
+            $auto_generate = isset($_POST['certificate_auto_generate']) ? 1 : 0;
+            
+            update_option('clarity_certificate_lambda_endpoint', $lambda_endpoint);
+            update_option('clarity_certificate_enabled', $certificate_enabled);
+            update_option('clarity_certificate_auto_generate', $auto_generate);
+            
+            echo '<div class="notice notice-success"><p>Certificate settings saved successfully!</p></div>';
+        }
+        
+        // Get current settings
+        $lambda_endpoint = get_option('clarity_certificate_lambda_endpoint', '');
+        $certificate_enabled = get_option('clarity_certificate_enabled', 1);
+        $auto_generate = get_option('clarity_certificate_auto_generate', 1);
+        
+        ?>
+        <div class="wrap">
+            <h1><?php _e('Certificate Settings', 'clarity-aws-ghl'); ?></h1>
+            <p><?php _e('Configure AWS Lambda certificate generation settings for course completion certificates.', 'clarity-aws-ghl'); ?></p>
+            
+            <form method="post" action="">
+                <?php wp_nonce_field('clarity_certificate_settings'); ?>
+                
+                <table class="form-table">
+                    <tr>
+                        <th scope="row">
+                            <label for="certificate_enabled"><?php _e('Enable Certificates', 'clarity-aws-ghl'); ?></label>
+                        </th>
+                        <td>
+                            <input type="checkbox" id="certificate_enabled" name="certificate_enabled" value="1" <?php checked($certificate_enabled, 1); ?>>
+                            <label for="certificate_enabled"><?php _e('Enable certificate generation system', 'clarity-aws-ghl'); ?></label>
+                            <p class="description"><?php _e('Turn certificate generation on or off globally.', 'clarity-aws-ghl'); ?></p>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <th scope="row">
+                            <label for="certificate_lambda_endpoint"><?php _e('AWS Lambda Endpoint', 'clarity-aws-ghl'); ?></label>
+                        </th>
+                        <td>
+                            <input type="url" id="certificate_lambda_endpoint" name="certificate_lambda_endpoint" 
+                                   value="<?php echo esc_attr($lambda_endpoint); ?>" class="regular-text" 
+                                   placeholder="https://api.amazonaws.com/prod/certificates">
+                            <p class="description">
+                                <?php _e('Enter your AWS API Gateway endpoint URL for certificate generation. Example: https://xpee6m6zo2.execute-api.us-east-1.amazonaws.com/prod/certificates', 'clarity-aws-ghl'); ?>
+                            </p>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <th scope="row">
+                            <label for="certificate_auto_generate"><?php _e('Auto-Generate Certificates', 'clarity-aws-ghl'); ?></label>
+                        </th>
+                        <td>
+                            <input type="checkbox" id="certificate_auto_generate" name="certificate_auto_generate" value="1" <?php checked($auto_generate, 1); ?>>
+                            <label for="certificate_auto_generate"><?php _e('Automatically generate certificates when courses are completed', 'clarity-aws-ghl'); ?></label>
+                            <p class="description"><?php _e('When enabled, certificates will be generated automatically when students complete 100% of a course.', 'clarity-aws-ghl'); ?></p>
+                        </td>
+                    </tr>
+                </table>
+                
+                <h2><?php _e('Certificate System Status', 'clarity-aws-ghl'); ?></h2>
+                <table class="form-table">
+                    <tr>
+                        <th scope="row"><?php _e('Lambda Endpoint Status', 'clarity-aws-ghl'); ?></th>
+                        <td>
+                            <?php if (!empty($lambda_endpoint)): ?>
+                                <span style="color: green;">✓ Configured</span>
+                                <p class="description"><?php echo esc_html($lambda_endpoint); ?></p>
+                            <?php else: ?>
+                                <span style="color: red;">✗ Not configured</span>
+                                <p class="description"><?php _e('Please enter your AWS Lambda endpoint URL above.', 'clarity-aws-ghl'); ?></p>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <th scope="row"><?php _e('Database Schema', 'clarity-aws-ghl'); ?></th>
+                        <td>
+                            <?php
+                            global $wpdb;
+                            $enrollments_table = $wpdb->prefix . 'clarity_course_enrollments';
+                            $column_exists = $wpdb->get_results("SHOW COLUMNS FROM {$enrollments_table} LIKE 'certificate_number'");
+                            ?>
+                            <?php if (!empty($column_exists)): ?>
+                                <span style="color: green;">✓ Certificate fields present</span>
+                                <p class="description"><?php _e('Database schema includes certificate_number, certificate_url, and certificate_issued fields.', 'clarity-aws-ghl'); ?></p>
+                            <?php else: ?>
+                                <span style="color: red;">✗ Certificate fields missing</span>
+                                <p class="description"><?php _e('Database schema needs to be updated.', 'clarity-aws-ghl'); ?></p>
+                                <button type="button" id="fix-database-schema" class="button button-secondary" style="margin-top: 10px;">
+                                    <?php _e('Fix Database Schema', 'clarity-aws-ghl'); ?>
+                                </button>
+                                <div id="fix-database-result" style="margin-top: 10px;"></div>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <th scope="row"><?php _e('Certificate Manager', 'clarity-aws-ghl'); ?></th>
+                        <td>
+                            <?php if (class_exists('Clarity_AWS_GHL_Certificate_Manager')): ?>
+                                <span style="color: green;">✓ Certificate manager loaded</span>
+                                <p class="description"><?php _e('Certificate generation system is ready.', 'clarity-aws-ghl'); ?></p>
+                            <?php else: ?>
+                                <span style="color: red;">✗ Certificate manager not found</span>
+                                <p class="description"><?php _e('Certificate manager class is not loaded.', 'clarity-aws-ghl'); ?></p>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                </table>
+                
+                <h2><?php _e('Database Debug Information', 'clarity-aws-ghl'); ?></h2>
+                <p><?php _e('Debug information for certificate database issues:', 'clarity-aws-ghl'); ?></p>
+                
+                <?php
+                // Show current enrollments for current user
+                $current_user_id = get_current_user_id();
+                global $wpdb;
+                $enrollments_table = $wpdb->prefix . 'clarity_course_enrollments';
+                $user_enrollments = $wpdb->get_results($wpdb->prepare("
+                    SELECT * FROM {$enrollments_table} WHERE user_id = %d
+                ", $current_user_id));
+                ?>
+                
+                <table class="form-table">
+                    <tr>
+                        <th scope="row"><?php _e('Current User Enrollments', 'clarity-aws-ghl'); ?></th>
+                        <td>
+                            <?php if ($user_enrollments): ?>
+                                <table border="1" style="border-collapse: collapse; font-size: 12px;">
+                                    <tr><th>ID</th><th>Course ID</th><th>Progress %</th><th>Certificate URL</th><th>Certificate #</th><th>Status</th></tr>
+                                    <?php foreach ($user_enrollments as $enrollment): ?>
+                                        <tr>
+                                            <td><?php echo $enrollment->id; ?></td>
+                                            <td><?php echo $enrollment->course_id; ?></td>
+                                            <td><?php echo $enrollment->progress_percentage; ?></td>
+                                            <td><?php echo substr($enrollment->certificate_url ?? 'NULL', 0, 30) . '...'; ?></td>
+                                            <td><?php echo $enrollment->certificate_number ?? 'NULL'; ?></td>
+                                            <td><?php echo $enrollment->enrollment_status; ?></td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </table>
+                            <?php else: ?>
+                                <span style="color: red;">No enrollments found for current user (ID: <?php echo $current_user_id; ?>)</span>
+                                <p class="description">This might be why certificate generation is failing.</p>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <th scope="row"><?php _e('Manual Database Test', 'clarity-aws-ghl'); ?></th>
+                        <td>
+                            <button type="button" id="test-database-operations" class="button button-secondary">
+                                <?php _e('Test Database Operations', 'clarity-aws-ghl'); ?>
+                            </button>
+                            <p class="description"><?php _e('Test database insert/update operations to debug certificate save issues.', 'clarity-aws-ghl'); ?></p>
+                            <div id="database-test-result" style="margin-top: 10px;"></div>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <th scope="row"><?php _e('Clear Certificate Data', 'clarity-aws-ghl'); ?></th>
+                        <td>
+                            <button type="button" id="clear-certificate-data" class="button button-secondary" style="background: #ffc107; color: #212529;">
+                                <?php _e('Clear My Certificate Data', 'clarity-aws-ghl'); ?>
+                            </button>
+                            <p class="description">
+                                <?php _e('Reset certificate fields for your account only. Keeps admin access intact.', 'clarity-aws-ghl'); ?>
+                            </p>
+                            <div id="clear-certificate-result" style="margin-top: 10px;"></div>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <th scope="row"><?php _e('Fix URL Field Size', 'clarity-aws-ghl'); ?></th>
+                        <td>
+                            <button type="button" id="fix-url-field-size" class="button button-primary">
+                                <?php _e('Expand certificate_url Field', 'clarity-aws-ghl'); ?>
+                            </button>
+                            <p class="description">
+                                <?php _e('S3 URLs are too long for the current varchar(500) field. This expands it to TEXT.', 'clarity-aws-ghl'); ?>
+                            </p>
+                            <div id="fix-url-result" style="margin-top: 10px;"></div>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <th scope="row"><?php _e('Debug Logs', 'clarity-aws-ghl'); ?></th>
+                        <td>
+                            <button type="button" id="view-certificate-logs" class="button button-secondary">
+                                <?php _e('View Certificate Logs', 'clarity-aws-ghl'); ?>
+                            </button>
+                            <p class="description">
+                                <?php _e('View recent certificate-related error logs to debug issues.', 'clarity-aws-ghl'); ?>
+                            </p>
+                            <div id="certificate-logs-result" style="margin-top: 10px; max-height: 300px; overflow-y: auto; background: #f9f9f9; padding: 10px; font-family: monospace; font-size: 12px; border: 1px solid #ddd;"></div>
+                        </td>
+                    </tr>
+                </table>
+                
+                <h2><?php _e('Test Certificate Generation', 'clarity-aws-ghl'); ?></h2>
+                <p><?php _e('Use this section to test your certificate configuration:', 'clarity-aws-ghl'); ?></p>
+                <table class="form-table">
+                    <tr>
+                        <th scope="row"><?php _e('Test Endpoint', 'clarity-aws-ghl'); ?></th>
+                        <td>
+                            <button type="button" id="test-certificate-endpoint" class="button button-secondary" 
+                                    <?php echo empty($lambda_endpoint) ? 'disabled' : ''; ?>>
+                                <?php _e('Test Lambda Endpoint', 'clarity-aws-ghl'); ?>
+                            </button>
+                            <p class="description"><?php _e('Send a test request to your Lambda endpoint to verify it\'s working.', 'clarity-aws-ghl'); ?></p>
+                            <div id="test-certificate-result" style="margin-top: 10px;"></div>
+                        </td>
+                    </tr>
+                </table>
+                
+                <?php submit_button('Save Certificate Settings'); ?>
+            </form>
+            
+            <script>
+            jQuery(document).ready(function($) {
+                $('#test-certificate-endpoint').click(function() {
+                    var button = $(this);
+                    var resultDiv = $('#test-certificate-result');
+                    
+                    button.prop('disabled', true).text('Testing...');
+                    resultDiv.html('<p>Testing certificate endpoint...</p>');
+                    
+                    $.ajax({
+                        url: ajaxurl,
+                        type: 'POST',
+                        data: {
+                            action: 'clarity_test_certificate_endpoint',
+                            nonce: '<?php echo wp_create_nonce('clarity_certificate_test_nonce'); ?>',
+                            endpoint: $('#certificate_lambda_endpoint').val()
+                        },
+                        success: function(response) {
+                            if (response.success) {
+                                resultDiv.html('<div style="color: green; padding: 10px; background: #f0f8f0; border: 1px solid #4CAF50;">✓ ' + response.data.message + '</div>');
+                            } else {
+                                resultDiv.html('<div style="color: red; padding: 10px; background: #fdf0f0; border: 1px solid #f44336;">✗ ' + response.data.message + '</div>');
+                            }
+                        },
+                        error: function() {
+                            resultDiv.html('<div style="color: red; padding: 10px; background: #fdf0f0; border: 1px solid #f44336;">✗ Failed to test endpoint</div>');
+                        },
+                        complete: function() {
+                            button.prop('disabled', false).text('Test Lambda Endpoint');
+                        }
+                    });
+                });
+                
+                $('#fix-database-schema').click(function() {
+                    var button = $(this);
+                    var resultDiv = $('#fix-database-result');
+                    
+                    button.prop('disabled', true).text('Fixing...');
+                    resultDiv.html('<p>Updating database schema...</p>');
+                    
+                    $.ajax({
+                        url: ajaxurl,
+                        type: 'POST',
+                        data: {
+                            action: 'clarity_fix_database_schema',
+                            nonce: '<?php echo wp_create_nonce('clarity_database_fix_nonce'); ?>'
+                        },
+                        success: function(response) {
+                            if (response.success) {
+                                resultDiv.html('<div style="color: green; padding: 10px; background: #f0f8f0; border: 1px solid #4CAF50;">✓ ' + response.data.message + '</div>');
+                                button.remove();
+                                setTimeout(function() {
+                                    location.reload();
+                                }, 2000);
+                            } else {
+                                resultDiv.html('<div style="color: red; padding: 10px; background: #fdf0f0; border: 1px solid #f44336;">✗ ' + response.data.message + '</div>');
+                                button.prop('disabled', false).text('Fix Database Schema');
+                            }
+                        },
+                        error: function() {
+                            resultDiv.html('<div style="color: red; padding: 10px; background: #fdf0f0; border: 1px solid #f44336;">✗ Failed to fix database schema</div>');
+                            button.prop('disabled', false).text('Fix Database Schema');
+                        }
+                    });
+                });
+                
+                $('#test-database-operations').click(function() {
+                    var button = $(this);
+                    var resultDiv = $('#database-test-result');
+                    
+                    button.prop('disabled', true).text('Testing...');
+                    resultDiv.html('<p>Running database tests...</p>');
+                    
+                    $.ajax({
+                        url: ajaxurl,
+                        type: 'POST',
+                        data: {
+                            action: 'clarity_test_database_operations',
+                            nonce: '<?php echo wp_create_nonce('clarity_database_test_nonce'); ?>'
+                        },
+                        success: function(response) {
+                            if (response.success) {
+                                resultDiv.html('<div style="color: green; padding: 10px; background: #f0f8f0; border: 1px solid #4CAF50;">' + response.data.message + '</div>');
+                            } else {
+                                resultDiv.html('<div style="color: red; padding: 10px; background: #fdf0f0; border: 1px solid #f44336;">' + response.data.message + '</div>');
+                            }
+                            button.prop('disabled', false).text('Test Database Operations');
+                        },
+                        error: function() {
+                            resultDiv.html('<div style="color: red; padding: 10px; background: #fdf0f0; border: 1px solid #f44336;">Failed to test database operations</div>');
+                            button.prop('disabled', false).text('Test Database Operations');
+                        }
+                    });
+                });
+                
+                $('#clear-certificate-data').click(function() {
+                    if (!confirm('Are you sure you want to clear your certificate data? This will reset your enrollment progress.')) {
+                        return;
+                    }
+                    
+                    var button = $(this);
+                    var resultDiv = $('#clear-certificate-result');
+                    
+                    button.prop('disabled', true).text('Clearing...');
+                    resultDiv.html('<p>Clearing certificate data...</p>');
+                    
+                    $.ajax({
+                        url: ajaxurl,
+                        type: 'POST',
+                        data: {
+                            action: 'clarity_clear_certificate_data',
+                            nonce: '<?php echo wp_create_nonce('clarity_clear_certificate_nonce'); ?>'
+                        },
+                        success: function(response) {
+                            if (response.success) {
+                                resultDiv.html('<div style="color: green; padding: 10px; background: #f0f8f0; border: 1px solid #4CAF50;">' + response.data.message + '</div>');
+                                setTimeout(function() {
+                                    location.reload();
+                                }, 2000);
+                            } else {
+                                resultDiv.html('<div style="color: red; padding: 10px; background: #fdf0f0; border: 1px solid #f44336;">' + response.data.message + '</div>');
+                            }
+                            button.prop('disabled', false).text('Clear My Certificate Data');
+                        },
+                        error: function() {
+                            resultDiv.html('<div style="color: red; padding: 10px; background: #fdf0f0; border: 1px solid #f44336;">Failed to clear certificate data</div>');
+                            button.prop('disabled', false).text('Clear My Certificate Data');
+                        }
+                    });
+                });
+                
+                $('#fix-url-field-size').click(function() {
+                    var button = $(this);
+                    var resultDiv = $('#fix-url-result');
+                    
+                    button.prop('disabled', true).text('Fixing...');
+                    
+                    $.ajax({
+                        url: ajaxurl,
+                        type: 'POST',
+                        data: {
+                            action: 'clarity_fix_url_field_size',
+                            nonce: '<?php echo wp_create_nonce('clarity_fix_url_nonce'); ?>'
+                        },
+                        success: function(response) {
+                            if (response.success) {
+                                resultDiv.html('<div style="color: green; padding: 10px; background: #f0f8f0; border: 1px solid #4CAF50;">✓ ' + response.data.message + '</div>');
+                            } else {
+                                resultDiv.html('<div style="color: red; padding: 10px; background: #fdf0f0; border: 1px solid #f44336;">✗ ' + response.data.message + '</div>');
+                            }
+                            button.prop('disabled', false).text('Expand certificate_url Field');
+                        },
+                        error: function() {
+                            resultDiv.html('<div style="color: red; padding: 10px; background: #fdf0f0; border: 1px solid #f44336;">✗ Failed to expand field</div>');
+                            button.prop('disabled', false).text('Expand certificate_url Field');
+                        }
+                    });
+                });
+                
+                $('#view-certificate-logs').click(function() {
+                    var button = $(this);
+                    var resultDiv = $('#certificate-logs-result');
+                    
+                    button.prop('disabled', true).text('Loading...');
+                    
+                    $.ajax({
+                        url: ajaxurl,
+                        type: 'POST',
+                        data: {
+                            action: 'clarity_view_certificate_logs',
+                            nonce: '<?php echo wp_create_nonce('clarity_logs_nonce'); ?>'
+                        },
+                        success: function(response) {
+                            if (response.success) {
+                                resultDiv.html(response.data.logs);
+                            } else {
+                                resultDiv.html('<div style="color: red;">Failed to load logs: ' + response.data.message + '</div>');
+                            }
+                            button.prop('disabled', false).text('View Certificate Logs');
+                        },
+                        error: function() {
+                            resultDiv.html('<div style="color: red;">Error loading logs</div>');
+                            button.prop('disabled', false).text('View Certificate Logs');
+                        }
+                    });
                 });
             });
             </script>

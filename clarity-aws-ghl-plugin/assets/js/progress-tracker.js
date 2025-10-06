@@ -37,6 +37,15 @@
             }
         });
         
+        // Get certificate button
+        $(document).on('click', '.get-certificate', function() {
+            var $button = $(this);
+            var userId = $button.data('user-id');
+            var courseId = $button.data('course-id');
+            
+            generateCertificate(userId, courseId, $button);
+        });
+        
         // Start lesson button
         $(document).on('click', '.start-lesson', function() {
             var lessonId = $(this).data('lesson-id');
@@ -222,6 +231,54 @@
                 action: 'clarity_track_lesson_start',
                 nonce: clarityProgress.nonce,
                 lesson_id: lessonId
+            }
+        });
+    }
+    
+    /**
+     * Generate certificate
+     */
+    function generateCertificate(userId, courseId, $button) {
+        var originalText = $button.text();
+        
+        $button.prop('disabled', true).text(clarityProgress.strings.generating_certificate);
+        
+        $.ajax({
+            url: clarityProgress.ajax_url,
+            type: 'POST',
+            data: {
+                action: 'clarity_generate_user_certificate',
+                nonce: clarityProgress.nonce,
+                course_id: courseId
+            },
+            success: function(response) {
+                if (response.success) {
+                    // Replace button with download link
+                    $button.closest('.course-completed').html(
+                        '<span class="completion-badge">' +
+                        '<span class="dashicons dashicons-awards"></span>' +
+                        'Course Complete!' +
+                        '</span>' +
+                        '<a href="' + response.data.certificate_url + '" class="button button-primary certificate-download" target="_blank">' +
+                        'Download Certificate' +
+                        '</a>'
+                    );
+                    
+                    showNotification(clarityProgress.strings.certificate_generated, 'success');
+                    
+                    // Refresh page after 2 seconds
+                    setTimeout(function() {
+                        window.location.reload();
+                    }, 2000);
+                    
+                } else {
+                    showNotification(response.data || clarityProgress.strings.certificate_error, 'error');
+                    $button.prop('disabled', false).text(originalText);
+                }
+            },
+            error: function() {
+                showNotification(clarityProgress.strings.certificate_error, 'error');
+                $button.prop('disabled', false).text(originalText);
             }
         });
     }

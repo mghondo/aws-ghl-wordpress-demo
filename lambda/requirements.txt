@@ -1,0 +1,30 @@
+# AWS Lambda Certificate Generator Dependencies
+# 
+# This file specifies the Python packages required for the certificate
+# generation Lambda function. Install with: pip install -r requirements.txt
+
+# PDF Generation
+weasyprint==60.1
+# WeasyPrint is used to convert HTML/CSS to PDF. It provides excellent
+# support for modern CSS and creates high-quality PDF documents.
+
+# Template Engine  
+jinja2==3.1.2
+# Jinja2 is used for HTML template rendering, allowing dynamic content
+# injection into the certificate template.
+
+# AWS SDK
+boto3==1.28.0
+# Boto3 is the AWS SDK for Python, used for S3 operations (upload, 
+# signed URLs, bucket management).
+
+# Additional dependencies that may be automatically installed:
+# - botocore (included with boto3)
+# - markupsafe (included with jinja2)
+# - pillow (included with weasyprint for image processing)
+# - cffi, pycparser (required by weasyprint for CSS parsing)
+# - fonttools (for font handling in weasyprint)
+
+# Note: Some dependencies like Cairo, Pango, and GDK-PixBuf are required
+# by WeasyPrint but are system-level dependencies. For AWS Lambda, these
+# are included in the Lambda runtime or need to be provided via Lambda layers.
