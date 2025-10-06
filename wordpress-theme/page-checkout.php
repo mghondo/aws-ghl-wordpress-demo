@@ -69,10 +69,25 @@ if ($is_demo && !is_user_logged_in()) {
     $current_user = wp_get_current_user();
 }
 
+// Debug: Show all POST data at the top of the page
+if (!empty($_POST)) {
+    echo '<div style="background: #f0f0f0; padding: 15px; margin: 20px; border: 1px solid #ccc; border-radius: 5px;">';
+    echo '<h3>🐛 DEBUG - POST Data Received:</h3>';
+    echo '<pre>' . print_r($_POST, true) . '</pre>';
+    echo '<p><strong>Demo mode:</strong> ' . ($is_demo ? 'YES' : 'NO') . '</p>';
+    echo '<p><strong>User logged in:</strong> ' . (is_user_logged_in() ? 'YES' : 'NO') . '</p>';
+    echo '<p><strong>User ID:</strong> ' . get_current_user_id() . '</p>';
+    echo '</div>';
+}
+
 // Handle form submission (disabled in demo mode)
 if (isset($_POST['process_payment']) && !$is_demo) {
+    echo '<div style="background: #d4edda; padding: 15px; margin: 20px; border: 1px solid #c3e6cb; border-radius: 5px;">';
+    echo '<h3>✅ Processing Payment Form</h3>';
+    
     // Verify nonce
-    if (wp_verify_nonce($_POST['payment_nonce'], 'process_mock_payment')) {
+    if (function_exists('wp_verify_nonce') && wp_verify_nonce($_POST['payment_nonce'], 'process_mock_payment')) {
+        echo '<p>✅ Nonce verified, processing enrollment...</p>';
         
         // Process enrollment for all courses in cart
         $enrollment_ids = $course_routing->process_post_payment_enrollment(
@@ -81,10 +96,37 @@ if (isset($_POST['process_payment']) && !$is_demo) {
             $cart['total']
         );
         
-        // Redirect to dashboard with success
-        wp_redirect(home_url('/dashboard?enrolled=success'));
-        exit;
+        echo '<p>✅ Enrollment processed! IDs: ' . implode(', ', $enrollment_ids) . '</p>';
+        
+        echo '<p>🔄 Redirecting to dashboard...</p>';
+        echo '<script>setTimeout(function() { window.location.href = "' . home_url('/dashboard?enrolled=success') . '"; }, 2000);</script>';
+        echo '</div>';
+        
+    } else if (!function_exists('wp_verify_nonce')) {
+        echo '<p>⚠️ WordPress nonce function not available, processing anyway...</p>';
+        
+        // Process enrollment for all courses in cart
+        $enrollment_ids = $course_routing->process_post_payment_enrollment(
+            get_current_user_id(),
+            $cart['courses'],
+            $cart['total']
+        );
+        
+        echo '<p>✅ Enrollment processed! IDs: ' . implode(', ', $enrollment_ids) . '</p>';
+        
+        echo '<p>🔄 Redirecting to dashboard...</p>';
+        echo '<script>setTimeout(function() { window.location.href = "' . home_url('/dashboard?enrolled=success') . '"; }, 2000);</script>';
+        echo '</div>';
+        
+    } else {
+        echo '<p>❌ Nonce verification failed</p>';
+        echo '</div>';
     }
+} else if (isset($_POST['process_payment'])) {
+    echo '<div style="background: #fff3cd; padding: 15px; margin: 20px; border: 1px solid #ffeaa7; border-radius: 5px;">';
+    echo '<h3>🎯 Demo Mode - Payment Form Submitted</h3>';
+    echo '<p>In demo mode, no actual enrollment is processed.</p>';
+    echo '</div>';
 }
 
 get_header();
@@ -629,23 +671,30 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Handle form submission
     document.getElementById('payment-form').addEventListener('submit', function(e) {
+        console.log('Form submit triggered');
+        
+        <?php if ($is_demo): ?>
         e.preventDefault();
         
         // Show processing message
         document.getElementById('payment-form').style.display = 'none';
         document.getElementById('processing-message').style.display = 'block';
         
-        <?php if ($is_demo): ?>
         // In demo mode, just show processing then fake success
         setTimeout(function() {
             alert('🎯 DEMO MODE: Payment processed successfully!\n\nIn real mode, you would be enrolled and redirected to dashboard.');
             location.reload();
         }, 2000);
         <?php else: ?>
-        // Wait 2 seconds then submit for real
-        setTimeout(function() {
-            document.getElementById('payment-form').submit();
-        }, 2000);
+        // For real mode, show processing message but let form submit naturally
+        // Don't prevent default, let the form submit to the server
+        
+        // Show processing message
+        document.getElementById('payment-form').style.display = 'none';
+        document.getElementById('processing-message').style.display = 'block';
+        
+        // The form will submit naturally to the server
+        console.log('Form will submit to server');
         <?php endif; ?>
     });
 });

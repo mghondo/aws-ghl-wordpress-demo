@@ -1,0 +1,81 @@
+# AWS Credentials and Sensitive Files
+*.pem
+*.key
+*.p12
+.env
+.env.local
+.env.production
+.env.development
+aws-config/
+**/aws-config/
+**/credentials
+**/config
+.aws/
+**/.aws/
+
+# Lambda Response Files (may contain signed URLs with temporary credentials)
+lambda/response*.json
+lambda/test-response*.json
+**/response*.json
+
+# AWS Lambda Package Files (if they contain credentials)
+lambda/package.zip
+lambda/*.zip
+
+# Debug and Log Files
+debug.log
+error.log
+wp-content/debug.log
+**/debug.log
+**/error.log
+
+# WordPress Config Files
+wp-config.php
+wp-config-local.php
+
+# Database Files
+*.sql
+*.db
+*.sqlite
+
+# Temporary Files
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
+
+# IDE Files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Node Modules (if any)
+node_modules/
+**/node_modules/
+
+# Build Artifacts
+dist/
+build/
+**/dist/
+**/build/
+
+# Backup Files
+*.backup
+*.bak
+backup*/
+**/backup*/
+
+# Certificate Files
+certificates/
+**/certificates/
+*.crt
+*.cert
+*.cer
+
+# Private Keys and Secrets
+private*/
+**/private*/
+secrets*/
+**/secrets*/
