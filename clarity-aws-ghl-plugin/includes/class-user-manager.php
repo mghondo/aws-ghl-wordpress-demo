@@ -78,6 +78,12 @@ class Clarity_AWS_GHL_User_Manager {
         // User role capabilities
         add_action('init', array($this, 'setup_student_capabilities'));
         
+        // Course completion webhook
+        add_action('clarity_course_completed', array($this, 'handle_course_completion'), 10, 2);
+        
+        // Manual webhook trigger for testing
+        add_action('wp_ajax_test_course_completion_webhook', array($this, 'ajax_test_course_completion_webhook'));
+        
         // Redirect after login
         add_filter('login_redirect', array($this, 'student_login_redirect'), 10, 3);
     }
@@ -823,6 +829,98 @@ class Clarity_AWS_GHL_User_Manager {
                 'Content-Type' => 'application/json'
             ),
             'timeout' => 30
+        ));
+    }
+    
+    /**
+     * Send course completion data to GHL webhook
+     */
+    private function send_course_completion_to_ghl($user_id, $course_id) {
+        error_log("Clarity: send_course_completion_to_ghl called for user {$user_id}, course {$course_id}");
+        
+        // Only trigger for Tier 1 course (Real Estate Foundations)
+        // Check by course tier instead of ID since ID may vary
+        global $wpdb;
+        $tables = (new Clarity_AWS_GHL_Database_Courses())->get_table_names();
+        
+        $course = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM {$tables['courses']} WHERE id = %d",
+            $course_id
+        ));
+        
+        error_log("Clarity: Found course - ID: {$course_id}, Title: " . ($course ? $course->course_title : 'NOT FOUND') . ", Tier: " . ($course ? $course->course_tier : 'N/A'));
+        
+        // Only trigger for tier 1 course (Real Estate Foundations)
+        if (!$course || $course->course_tier != 1) {
+            error_log("Clarity: Skipping webhook - not tier 1 course");
+            return;
+        }
+        
+        $user = get_userdata($user_id);
+        if (!$user) {
+            error_log("Clarity: User not found for ID {$user_id}");
+            return;
+        }
+        
+        error_log("Clarity: Sending webhook for user {$user->user_email}");
+        
+        $webhook_url = 'https://services.leadconnectorhq.com/hooks/dx7Ru0l4s4q30jYQBuAz/webhook-trigger/3df2ed90-b622-4e2b-ae4e-a0097ff6f265';
+        
+        $data = array(
+            'email' => $user->user_email,
+            'firstName' => $user->first_name,
+            'lastName' => $user->last_name,
+            'courseName' => 'Real Estate Foundations'
+        );
+        
+        error_log("Clarity: Webhook data - " . json_encode($data));
+        
+        // Send to webhook
+        $response = wp_remote_post($webhook_url, array(
+            'body' => json_encode($data),
+            'headers' => array(
+                'Content-Type' => 'application/json'
+            ),
+            'timeout' => 30
+        ));
+        
+        if (is_wp_error($response)) {
+            error_log("Clarity: Webhook error - " . $response->get_error_message());
+        } else {
+            $response_code = wp_remote_retrieve_response_code($response);
+            $response_body = wp_remote_retrieve_body($response);
+            error_log("Clarity: Webhook response - Code: {$response_code}, Body: {$response_body}");
+        }
+    }
+    
+    /**
+     * Handle course completion webhook trigger
+     */
+    public function handle_course_completion($user_id, $course_id) {
+        error_log("Clarity: Course completion triggered for user {$user_id}, course {$course_id}");
+        $this->send_course_completion_to_ghl($user_id, $course_id);
+    }
+    
+    /**
+     * AJAX: Test course completion webhook
+     */
+    public function ajax_test_course_completion_webhook() {
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Insufficient permissions');
+        }
+        
+        $user_id = get_current_user_id();
+        $course_id = isset($_POST['course_id']) ? intval($_POST['course_id']) : 1;
+        
+        error_log("Clarity: Manual webhook test triggered for user {$user_id}, course {$course_id}");
+        
+        // Directly call the webhook function
+        $this->send_course_completion_to_ghl($user_id, $course_id);
+        
+        wp_send_json_success(array(
+            'message' => 'Webhook test triggered',
+            'user_id' => $user_id,
+            'course_id' => $course_id
         ));
     }
     

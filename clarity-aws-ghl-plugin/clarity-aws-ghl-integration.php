@@ -33,6 +33,13 @@ define('CLARITY_AWS_GHL_PATH', CLARITY_AWS_GHL_PLUGIN_DIR);
 define('CLARITY_AWS_GHL_URL', CLARITY_AWS_GHL_PLUGIN_URL);
 
 /**
+ * Get app name from settings or default
+ */
+function clarity_get_app_name() {
+    return get_option('clarity_app_name', 'AWS GoHighLevel Integration');
+}
+
+/**
  * Main Plugin Class
  */
 class Clarity_AWS_GHL_Integration {
@@ -93,6 +100,10 @@ class Clarity_AWS_GHL_Integration {
         add_action('admin_init', array($this, 'admin_init'));
         add_action('admin_menu', array($this, 'admin_menu'));
         add_action('admin_enqueue_scripts', array($this, 'admin_scripts'));
+        add_filter('admin_title', array($this, 'admin_title'), 10, 2);
+        add_filter('gettext', array($this, 'replace_plugin_text'), 10, 3);
+        add_filter('bloginfo', array($this, 'filter_site_name'), 10, 2);
+        add_filter('wp_title', array($this, 'filter_wp_title'), 10, 2);
         
         // AJAX hooks
         add_action('wp_ajax_clarity_test_s3_connection', array($this, 'ajax_test_s3_connection'));
@@ -101,6 +112,7 @@ class Clarity_AWS_GHL_Integration {
         add_action('wp_ajax_clarity_test_certificate_endpoint', array($this, 'ajax_test_certificate_endpoint'));
         add_action('wp_ajax_clarity_generate_user_certificate', array($this, 'ajax_generate_user_certificate'));
         add_action('wp_ajax_clarity_fix_database_schema', array($this, 'ajax_fix_database_schema'));
+        add_action('wp_ajax_clarity_save_app_name', array($this, 'ajax_save_app_name'));
         add_action('wp_ajax_clarity_test_database_operations', array($this, 'ajax_test_database_operations'));
         add_action('wp_ajax_clarity_clear_certificate_data', array($this, 'ajax_clear_certificate_data'));
         add_action('wp_ajax_clarity_view_certificate_logs', array($this, 'ajax_view_certificate_logs'));
@@ -315,9 +327,10 @@ class Clarity_AWS_GHL_Integration {
      */
     public function admin_menu() {
         // Main menu page
+        $app_name = clarity_get_app_name();
         add_menu_page(
-            __('AWS GHL Integration', 'clarity-aws-ghl'),
-            __('AWS GHL', 'clarity-aws-ghl'),
+            $app_name,
+            $app_name,
             'manage_options',
             'clarity-aws-ghl',
             array($this, 'admin_dashboard_page'),
@@ -881,9 +894,11 @@ class Clarity_AWS_GHL_Integration {
     public function admin_notices() {
         // Check if configuration is complete
         if (!$this->is_configured()) {
+            $app_name = clarity_get_app_name();
             echo '<div class="notice notice-warning is-dismissible">';
             echo '<p>' . sprintf(
-                __('AWS GHL Integration needs configuration. <a href="%s">Configure now</a>', 'clarity-aws-ghl'),
+                __('%s needs configuration. <a href="%s">Configure now</a>', 'clarity-aws-ghl'),
+                $app_name,
                 admin_url('admin.php?page=clarity-aws-ghl')
             ) . '</p>';
             echo '</div>';
@@ -1903,6 +1918,100 @@ class Clarity_AWS_GHL_Integration {
             </script>
         </div>
         <?php
+    }
+    
+    /**
+     * Filter admin page titles
+     */
+    public function admin_title($admin_title, $title) {
+        global $pagenow;
+        
+        // Only modify titles for our plugin pages
+        if ($pagenow === 'admin.php' && isset($_GET['page']) && strpos($_GET['page'], 'clarity-aws-ghl') === 0) {
+            $app_name = clarity_get_app_name();
+            // Replace any occurrence of default titles with custom app name
+            $admin_title = str_replace(
+                array(
+                    'AWS GHL Integration', 
+                    'AWS GoHighLevel Integration', 
+                    'AWS GHL',
+                    'Clarity AWS GHL Integration',
+                    'Clarity AWS GoHighLevel Integration'
+                ),
+                $app_name,
+                $admin_title
+            );
+            
+            // Also handle cases where the title might contain these as part of larger strings
+            $admin_title = preg_replace('/Clarity AWS (GoHighLevel|GHL) Integration/', $app_name, $admin_title);
+        }
+        
+        return $admin_title;
+    }
+    
+    /**
+     * Replace plugin text throughout WordPress admin
+     */
+    public function replace_plugin_text($translated, $text, $domain) {
+        // Only apply to our plugin's text domain and admin area
+        if (!is_admin() || $domain !== 'clarity-aws-ghl') {
+            return $translated;
+        }
+        
+        $app_name = clarity_get_app_name();
+        
+        // Replace common plugin name variations
+        $replacements = array(
+            'AWS GHL Integration' => $app_name,
+            'AWS GoHighLevel Integration' => $app_name,
+            'AWS GHL' => $app_name,
+            'Clarity AWS GHL Integration' => $app_name,
+            'Clarity AWS GoHighLevel Integration' => $app_name
+        );
+        
+        return strtr($translated, $replacements);
+    }
+    
+    /**
+     * Filter site name to use custom app name
+     */
+    public function filter_site_name($output, $show) {
+        if ($show === 'name') {
+            return clarity_get_app_name();
+        }
+        return $output;
+    }
+    
+    /**
+     * Filter WordPress title to use custom app name
+     */
+    public function filter_wp_title($title, $sep) {
+        $app_name = clarity_get_app_name();
+        // Replace the site name in the title with our custom app name
+        $site_name = get_option('bloginfo_cache_name', get_option('blogname'));
+        if (!empty($site_name) && strpos($title, $site_name) !== false) {
+            $title = str_replace($site_name, $app_name, $title);
+        }
+        return $title;
+    }
+    
+    /**
+     * AJAX handler to save app name
+     */
+    public function ajax_save_app_name() {
+        check_ajax_referer('clarity_settings_nonce', 'nonce');
+        
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Insufficient permissions');
+        }
+        
+        $app_name = sanitize_text_field($_POST['app_name']);
+        if (empty($app_name)) {
+            wp_send_json_error('App name cannot be empty');
+        }
+        
+        update_option('clarity_app_name', $app_name);
+        wp_send_json_success(array('message' => 'App name updated successfully'));
     }
 }
 

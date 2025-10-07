@@ -816,8 +816,18 @@ class Clarity_AWS_GHL_Course_Manager {
             }
         }
         
+        // Trigger course completion check (this will fire the webhook if 100% complete)
+        if (class_exists('Clarity_AWS_GHL_Progress_Tracker')) {
+            $progress_tracker = new Clarity_AWS_GHL_Progress_Tracker();
+            // Use reflection to call the private method
+            $reflection = new ReflectionClass($progress_tracker);
+            $method = $reflection->getMethod('check_course_completion');
+            $method->setAccessible(true);
+            $method->invoke($progress_tracker, $user_id, $course_id);
+        }
+        
         wp_send_json_success(array(
-            'message' => "Completed {$completed_count} lessons",
+            'message' => "Completed {$completed_count} lessons and triggered course completion check",
             'completed_count' => $completed_count
         ));
     }

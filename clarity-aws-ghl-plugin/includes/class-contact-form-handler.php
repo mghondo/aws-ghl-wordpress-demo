@@ -262,7 +262,8 @@ class Clarity_AWS_GHL_Contact_Form_Handler {
         $message .= "Date: " . current_time('mysql') . "\n\n";
         $message .= "---\n";
         $message .= "This lead has been redirected to the free course offer.\n";
-        $message .= "View all leads in WordPress Admin > AWS GHL > Contacts";
+        $app_name = clarity_get_app_name();
+        $message .= "View all leads in WordPress Admin > {$app_name} > Contacts";
         
         $headers = array(
             'Content-Type: text/plain; charset=UTF-8',
@@ -348,7 +349,8 @@ class Clarity_AWS_GHL_Contact_Form_Handler {
         $message .= "Message:\n{$form_data['message']}\n\n";
         $message .= "---\n";
         $message .= "This lead has been saved to the database and redirected to the free course offer.\n";
-        $message .= "View all leads in WordPress Admin > AWS GHL > Contacts";
+        $app_name = clarity_get_app_name();
+        $message .= "View all leads in WordPress Admin > {$app_name} > Contacts";
         
         $headers = array(
             'Content-Type: text/plain; charset=UTF-8',

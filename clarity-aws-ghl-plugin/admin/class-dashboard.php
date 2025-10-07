@@ -21,6 +21,13 @@ class Clarity_AWS_GHL_Dashboard {
     }
     
     /**
+     * Get app name from settings or default
+     */
+    private function get_app_name() {
+        return clarity_get_app_name();
+    }
+    
+    /**
      * Render dashboard page
      */
     public function render() {
@@ -31,7 +38,7 @@ class Clarity_AWS_GHL_Dashboard {
         
         ?>
         <div class="wrap">
-            <h1><?php _e('AWS GoHighLevel Integration Dashboard', 'clarity-aws-ghl'); ?></h1>
+            <h1><?php echo esc_html($this->get_app_name() . ' Dashboard'); ?></h1>
             
             <?php $this->render_status_cards($plugin_info, $stats); ?>
             
@@ -42,6 +49,7 @@ class Clarity_AWS_GHL_Dashboard {
                 </div>
                 
                 <div class="clarity-dashboard-right">
+                    <?php $this->render_app_settings(); ?>
                     <?php $this->render_quick_actions($plugin_info); ?>
                     <?php $this->render_system_info($plugin_info); ?>
                 </div>
@@ -384,6 +392,78 @@ class Clarity_AWS_GHL_Dashboard {
                 </table>
             </div>
         </div>
+        <?php
+    }
+    
+    /**
+     * Render app settings widget
+     */
+    private function render_app_settings() {
+        $app_name = $this->get_app_name();
+        ?>
+        <div class="clarity-dashboard-widget">
+            <div class="clarity-widget-header">
+                <h3><?php _e('App Settings', 'clarity-aws-ghl'); ?></h3>
+            </div>
+            <div class="clarity-widget-content">
+                <form id="clarity-app-settings-form">
+                    <table class="form-table">
+                        <tr>
+                            <td><strong><?php _e('App Name:', 'clarity-aws-ghl'); ?></strong></td>
+                            <td>
+                                <input type="text" id="clarity-app-name" value="<?php echo esc_attr($app_name); ?>" class="regular-text" />
+                                <p class="description"><?php _e('This name will appear in admin menus and page titles', 'clarity-aws-ghl'); ?></p>
+                            </td>
+                        </tr>
+                    </table>
+                    <p class="submit">
+                        <button type="submit" class="button button-primary"><?php _e('Save Settings', 'clarity-aws-ghl'); ?></button>
+                        <span id="clarity-save-status" style="display:none; margin-left: 10px;"></span>
+                    </p>
+                </form>
+            </div>
+        </div>
+        
+        <script>
+        jQuery(document).ready(function($) {
+            $('#clarity-app-settings-form').on('submit', function(e) {
+                e.preventDefault();
+                
+                var $form = $(this);
+                var $button = $form.find('button[type="submit"]');
+                var $status = $('#clarity-save-status');
+                var appName = $('#clarity-app-name').val();
+                
+                $button.prop('disabled', true).text('Saving...');
+                $status.hide();
+                
+                $.post(ajaxurl, {
+                    action: 'clarity_save_app_name',
+                    app_name: appName,
+                    nonce: '<?php echo wp_create_nonce('clarity_settings_nonce'); ?>'
+                }, function(response) {
+                    if (response.success) {
+                        $status.removeClass('error').addClass('success').text('Settings saved! Refreshing page...').show();
+                        // Update page title immediately
+                        $('h1').first().text(appName + ' Dashboard');
+                        // Refresh the page after 1 second to update menu
+                        setTimeout(function() {
+                            window.location.reload();
+                        }, 1000);
+                    } else {
+                        $status.removeClass('success').addClass('error').text('Error: ' + response.data).show();
+                    }
+                }).always(function() {
+                    $button.prop('disabled', false).text('Save Settings');
+                });
+            });
+        });
+        </script>
+        
+        <style>
+        .success { color: #46b450; }
+        .error { color: #dc3232; }
+        </style>
         <?php
     }
 }

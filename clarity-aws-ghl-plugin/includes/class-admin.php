@@ -30,9 +30,10 @@ class Clarity_AWS_GHL_Admin {
      * Add admin menu
      */
     public function add_admin_menu() {
+        $app_name = clarity_get_app_name();
         add_menu_page(
-            __('AWS GHL Integration', 'clarity-aws-ghl'),
-            __('AWS GHL', 'clarity-aws-ghl'),
+            $app_name,
+            $app_name,
             'manage_options',
             'clarity-aws-ghl',
             array($this, 'dashboard_page'),
