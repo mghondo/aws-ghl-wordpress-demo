@@ -125,6 +125,39 @@ if (isset($_POST['register_student'])) {
                     array('%s', '%d')
                 );
 
+                // Send registration to GHL webhook
+                error_log("Clarity: Theme page registration webhook called for email {$email}");
+                
+                $webhook_url = 'https://services.leadconnectorhq.com/hooks/dx7Ru0l4s4q30jYQBuAz/webhook-trigger/75422136-564a-423f-b369-4dedf365f3ba';
+                
+                $webhook_data = array(
+                    'event' => 'student_registration',
+                    'email' => $email,
+                    'first_name' => $first_name,
+                    'last_name' => $last_name,
+                    'registration_date' => current_time('c'),
+                    'source' => 'clarity_course_platform'
+                );
+                
+                error_log("Clarity: Theme page registration webhook data - " . json_encode($webhook_data));
+                
+                // Send to webhook
+                $webhook_response = wp_remote_post($webhook_url, array(
+                    'body' => json_encode($webhook_data),
+                    'headers' => array(
+                        'Content-Type' => 'application/json'
+                    ),
+                    'timeout' => 30
+                ));
+                
+                if (is_wp_error($webhook_response)) {
+                    error_log("Clarity: Theme page registration webhook error - " . $webhook_response->get_error_message());
+                } else {
+                    $response_code = wp_remote_retrieve_response_code($webhook_response);
+                    $response_body = wp_remote_retrieve_body($webhook_response);
+                    error_log("Clarity: Theme page registration webhook response - Code: {$response_code}, Body: {$response_body}");
+                }
+
                 // Auto-login the new user
                 $creds = array(
                     'user_login' => $username,

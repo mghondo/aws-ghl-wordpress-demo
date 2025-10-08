@@ -372,12 +372,9 @@ class Clarity_AWS_GHL_User_Manager {
      * Send registration to GHL webhook
      */
     private function send_registration_to_ghl($email, $first_name, $last_name) {
-        // Get GHL webhook URL from settings
-        $webhook_url = get_option('clarity_ghl_webhook_url');
+        error_log("Clarity: send_registration_to_ghl called for email {$email}");
         
-        if (empty($webhook_url)) {
-            return;
-        }
+        $webhook_url = 'https://services.leadconnectorhq.com/hooks/dx7Ru0l4s4q30jYQBuAz/webhook-trigger/75422136-564a-423f-b369-4dedf365f3ba';
         
         $data = array(
             'event' => 'student_registration',
@@ -388,13 +385,24 @@ class Clarity_AWS_GHL_User_Manager {
             'source' => 'clarity_course_platform'
         );
         
+        error_log("Clarity: Registration webhook data - " . json_encode($data));
+        
         // Send to webhook
-        wp_remote_post($webhook_url, array(
+        $response = wp_remote_post($webhook_url, array(
             'body' => json_encode($data),
             'headers' => array(
                 'Content-Type' => 'application/json'
-            )
+            ),
+            'timeout' => 30
         ));
+        
+        if (is_wp_error($response)) {
+            error_log("Clarity: Registration webhook error - " . $response->get_error_message());
+        } else {
+            $response_code = wp_remote_retrieve_response_code($response);
+            $response_body = wp_remote_retrieve_body($response);
+            error_log("Clarity: Registration webhook response - Code: {$response_code}, Body: {$response_body}");
+        }
     }
     
     /**

@@ -58,6 +58,9 @@ class Clarity_AWS_GHL_Contact_Form_Handler {
             wp_send_json_error('Failed to process your request. Please try again.');
         }
         
+        // Send to GoHighLevel webhook
+        $this->send_email_lead_to_ghl($email);
+        
         // Send notification email to admin (optional)
         $this->send_admin_lead_notification($email);
         
@@ -271,6 +274,38 @@ class Clarity_AWS_GHL_Contact_Form_Handler {
         );
         
         wp_mail($admin_email, $subject, $message, $headers);
+    }
+    
+    /**
+     * Send email lead to GoHighLevel webhook
+     */
+    private function send_email_lead_to_ghl($email) {
+        error_log("Clarity: send_email_lead_to_ghl called for email {$email}");
+        
+        $webhook_url = 'https://services.leadconnectorhq.com/hooks/dx7Ru0l4s4q30jYQBuAz/webhook-trigger/a68645d7-e669-4e10-8de0-6299da1d20b0';
+        
+        $data = array(
+            'email' => $email
+        );
+        
+        error_log("Clarity: Email lead webhook data - " . json_encode($data));
+        
+        // Send to webhook
+        $response = wp_remote_post($webhook_url, array(
+            'body' => json_encode($data),
+            'headers' => array(
+                'Content-Type' => 'application/json'
+            ),
+            'timeout' => 30
+        ));
+        
+        if (is_wp_error($response)) {
+            error_log("Clarity: Email lead webhook error - " . $response->get_error_message());
+        } else {
+            $response_code = wp_remote_retrieve_response_code($response);
+            $response_body = wp_remote_retrieve_body($response);
+            error_log("Clarity: Email lead webhook response - Code: {$response_code}, Body: {$response_body}");
+        }
     }
     
     /**
