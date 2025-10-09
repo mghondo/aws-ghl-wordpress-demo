@@ -1,0 +1,1506 @@
+/**
+ * Admin Styles for Clarity AWS GHL Integration
+ */
+
+/* Dashboard Grid Layout */
+.clarity-dashboard-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 20px;
+    margin-top: 20px;
+}
+
+@media (max-width: 1200px) {
+    .clarity-dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Status Cards */
+.clarity-status-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 15px;
+    margin: 20px 0;
+}
+
+.clarity-status-card {
+    background: #fff;
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    transition: box-shadow 0.2s ease;
+}
+
+.clarity-status-card:hover {
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+.clarity-status-card h3 {
+    margin: 0 0 10px 0;
+    font-size: 14px;
+    color: #666;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.clarity-status-card .status-value {
+    font-size: 28px;
+    font-weight: bold;
+    margin: 5px 0;
+    line-height: 1;
+}
+
+.clarity-status-card .status-description {
+    color: #666;
+    font-size: 13px;
+    margin: 5px 0 0 0;
+}
+
+/* Status Colors */
+.status-success { color: #46b450; }
+.status-warning { color: #ffb900; }
+.status-error { color: #dc3232; }
+.status-info { color: #0073aa; }
+.status-unknown { color: #999; }
+
+/* Dashboard Widgets */
+.clarity-dashboard-widget {
+    background: #fff;
+    margin-bottom: 20px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.clarity-dashboard-widget h3 {
+    margin: 0;
+    padding: 15px 20px;
+    border-bottom: 1px solid #eee;
+    background: #f9f9f9;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.clarity-dashboard-widget .widget-content {
+    padding: 20px;
+}
+
+/* Quick Actions */
+.clarity-quick-actions .button {
+    display: block;
+    width: 100%;
+    margin-bottom: 10px;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+.clarity-quick-actions .button:last-child {
+    margin-bottom: 0;
+}
+
+/* Activity Items */
+.clarity-activity-item {
+    padding: 12px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.clarity-activity-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.clarity-activity-title {
+    margin-bottom: 5px;
+}
+
+.clarity-activity-time {
+    color: #666;
+    font-size: 12px;
+}
+
+/* Statistics Grid */
+.clarity-stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.clarity-stat-item {
+    text-align: center;
+    padding: 15px;
+    background: #f9f9f9;
+    border-radius: 4px;
+    border: 1px solid #eee;
+}
+
+.clarity-stat-number {
+    font-size: 24px;
+    font-weight: bold;
+    color: #0073aa;
+    display: block;
+}
+
+.clarity-stat-label {
+    font-size: 12px;
+    color: #666;
+    margin-top: 5px;
+    text-transform: uppercase;
+}
+
+/* Settings Forms */
+.clarity-settings-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-top: 20px;
+}
+
+.clarity-settings-help {
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 20px;
+    margin-top: 30px;
+}
+
+.clarity-settings-help h3 {
+    margin-top: 0;
+}
+
+.clarity-settings-help ol,
+.clarity-settings-help ul {
+    padding-left: 20px;
+}
+
+/* Webhook Info */
+.clarity-webhook-info {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-top: 20px;
+    overflow: hidden;
+}
+
+.clarity-webhook-info h3 {
+    margin: 0;
+    padding: 15px 20px;
+    background: #f9f9f9;
+    border-bottom: 1px solid #ddd;
+}
+
+.clarity-webhook-info .widefat {
+    border: none;
+    margin: 0;
+}
+
+.clarity-webhook-info .widefat th {
+    background: #f1f1f1;
+    width: 150px;
+    font-weight: 600;
+}
+
+.clarity-webhook-info .widefat td {
+    vertical-align: middle;
+}
+
+.clarity-webhook-info .widefat td input {
+    margin-right: 10px;
+}
+
+/* Sync Status Indicators */
+.ghl-sync-status {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: #fff;
+}
+
+.ghl-sync-status.status-synced {
+    background: #46b450;
+}
+
+.ghl-sync-status.status-pending {
+    background: #ffb900;
+}
+
+.ghl-sync-status.status-error {
+    background: #dc3232;
+}
+
+.ghl-sync-status.status-unknown {
+    background: #999;
+}
+
+/* Logs Table */
+.clarity-logs-filters {
+    background: #f9f9f9;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-bottom: 20px;
+}
+
+.clarity-logs-filters .form-table {
+    margin: 0;
+}
+
+.clarity-logs-filters .form-table th {
+    width: 120px;
+    padding: 10px 0;
+}
+
+.clarity-logs-filters .form-table td {
+    padding: 10px 0;
+}
+
+.clarity-logs-actions {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+/* Error States */
+input.error,
+select.error,
+textarea.error {
+    border-color: #dc3232 !important;
+    box-shadow: 0 0 2px rgba(220, 50, 50, 0.8);
+}
+
+/* Loading States */
+.clarity-loading {
+    position: relative;
+    opacity: 0.6;
+}
+
+.clarity-loading::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #0073aa;
+    border-radius: 50%;
+    animation: clarity-spin 1s linear infinite;
+}
+
+@keyframes clarity-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Tabs */
+.clarity-tabs {
+    margin-bottom: 20px;
+}
+
+.clarity-tabs .tab-links {
+    display: flex;
+    border-bottom: 1px solid #ddd;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.clarity-tabs .tab-link {
+    display: block;
+    padding: 12px 20px;
+    text-decoration: none;
+    color: #666;
+    border-bottom: 3px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.clarity-tabs .tab-link:hover {
+    color: #0073aa;
+}
+
+.clarity-tabs .tab-link.active {
+    color: #0073aa;
+    border-bottom-color: #0073aa;
+}
+
+.tab-content {
+    display: none;
+    padding: 20px 0;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* Collapsible Sections */
+.clarity-collapsible .toggle {
+    cursor: pointer;
+    padding: 10px;
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.clarity-collapsible .toggle:hover {
+    background: #f1f1f1;
+}
+
+.clarity-collapsible .toggle::after {
+    content: "▼";
+    transition: transform 0.2s ease;
+}
+
+.clarity-collapsible.collapsed .toggle::after {
+    transform: rotate(-90deg);
+}
+
+.collapsible-content {
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-top: none;
+    border-radius: 0 0 4px 4px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .clarity-status-cards {
+        grid-template-columns: 1fr;
+    }
+    
+    .clarity-stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .clarity-settings-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .clarity-tabs .tab-links {
+        flex-direction: column;
+    }
+    
+    .clarity-logs-actions {
+        flex-direction: column;
+    }
+}
+
+/* WordPress Admin Color Scheme Integration */
+.wp-admin.folded .clarity-dashboard-grid {
+    max-width: calc(100vw - 56px);
+}
+
+/* Notices */
+.clarity-notice {
+    margin: 15px 0;
+    padding: 12px 15px;
+    border-left: 4px solid;
+    border-radius: 0 4px 4px 0;
+}
+
+.clarity-notice.notice-success {
+    background: #f7fcf0;
+    border-left-color: #46b450;
+    color: #155724;
+}
+
+.clarity-notice.notice-error {
+    background: #fef7f7;
+    border-left-color: #dc3232;
+    color: #721c24;
+}
+
+.clarity-notice.notice-warning {
+    background: #fffbf0;
+    border-left-color: #ffb900;
+    color: #856404;
+}
+
+.clarity-notice.notice-info {
+    background: #f0f8ff;
+    border-left-color: #0073aa;
+    color: #004085;
+}
+
+/* Button Variations */
+.button.button-hero {
+    padding: 15px 30px;
+    font-size: 16px;
+    height: auto;
+}
+
+.button.button-small {
+    padding: 4px 8px;
+    font-size: 12px;
+    height: auto;
+    line-height: 1.4;
+}
+
+/* Form Enhancements */
+.form-table th {
+    width: 200px;
+}
+
+.form-table .description {
+    font-style: italic;
+    color: #666;
+}
+
+.regular-text {
+    width: 300px;
+}
+
+.large-text {
+    width: 500px;
+}
+
+/* Custom Icons */
+.clarity-icon {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    vertical-align: middle;
+    margin-right: 5px;
+}
+
+.clarity-icon.success {
+    color: #46b450;
+}
+
+.clarity-icon.error {
+    color: #dc3232;
+}
+
+.clarity-icon.warning {
+    color: #ffb900;
+}
+
+/* Print Styles */
+@media print {
+    .clarity-dashboard-widget,
+    .clarity-status-card {
+        break-inside: avoid;
+        box-shadow: none;
+        border: 1px solid #ccc;
+    }
+    
+    .button,
+    .clarity-quick-actions {
+        display: none;
+    }
+}
+
+/* Course Management Styles */
+.clarity-admin-header {
+    margin-bottom: 30px;
+}
+
+.clarity-admin-section {
+    background: #fff;
+    padding: 25px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.clarity-admin-section h2 {
+    margin-top: 0;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+.clarity-course-actions {
+    margin-bottom: 20px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.status-published {
+    background: #d4edda;
+    color: #155724;
+}
+
+.status-draft {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.status-archived {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+/* Modal Styles */
+.clarity-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 999999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.clarity-modal-content {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    max-width: 600px;
+    width: 90%;
+    max-height: 90%;
+    overflow-y: auto;
+}
+
+.clarity-modal-header {
+    padding: 20px 25px;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.clarity-modal-header h3 {
+    margin: 0;
+    font-size: 18px;
+}
+
+.clarity-modal-close {
+    font-size: 24px;
+    color: #999;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.clarity-modal-close:hover {
+    color: #333;
+}
+
+.clarity-modal-body {
+    padding: 25px;
+}
+
+.clarity-modal-footer {
+    padding: 20px 25px;
+    border-top: 1px solid #eee;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+/* Testing Controls */
+.clarity-testing-controls {
+    background: #f8f9fa;
+    padding: 20px;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    margin-bottom: 25px;
+}
+
+.clarity-testing-controls h3 {
+    margin-top: 0;
+    color: #495057;
+}
+
+.clarity-control-group {
+    margin-bottom: 15px;
+}
+
+.clarity-control-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+    color: #495057;
+}
+
+.clarity-control-group select {
+    width: 100%;
+    max-width: 300px;
+    padding: 8px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    background: #fff;
+}
+
+.clarity-control-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #dee2e6;
+}
+
+/* Progress Bar */
+.progress-bar {
+    width: 100px;
+    height: 20px;
+    background: #e9ecef;
+    border-radius: 10px;
+    overflow: hidden;
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 10px;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #28a745, #20c997);
+    transition: width 0.3s ease;
+}
+
+.progress-text {
+    font-size: 12px;
+    font-weight: 600;
+    color: #495057;
+}
+
+/* Analytics Dashboard */
+.clarity-analytics-dashboard {
+    background: #fff;
+    padding: 25px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.clarity-analytics-charts {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    margin-top: 30px;
+}
+
+.clarity-chart-section {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+}
+
+.clarity-chart-section h3 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: #495057;
+}
+
+.clarity-chart-placeholder {
+    background: #fff;
+    padding: 20px;
+    border-radius: 4px;
+    border: 1px solid #dee2e6;
+    min-height: 200px;
+}
+
+.tier-stat {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.tier-stat:last-child {
+    border-bottom: none;
+}
+
+.tier-label {
+    font-weight: 600;
+    color: #495057;
+}
+
+.tier-count {
+    color: #0073aa;
+    font-weight: 600;
+}
+
+/* Lesson Assignment Interface */
+.lesson-assignment-container {
+    padding: 20px 0;
+}
+
+.lesson-assignment-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    margin: 20px 0;
+    min-height: 400px;
+}
+
+.available-lessons-section,
+.assigned-lessons-section {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    background: #f9f9f9;
+}
+
+.available-lessons-section h4,
+.assigned-lessons-section h4 {
+    margin: 0 0 10px 0;
+    color: #333;
+    font-size: 16px;
+}
+
+.section-description {
+    margin: 0 0 15px 0;
+    font-size: 13px;
+    color: #666;
+    font-style: italic;
+}
+
+.lesson-assignment-footer {
+    text-align: center;
+    padding-top: 15px;
+    border-top: 1px solid #eee;
+    margin-top: 20px;
+}
+
+.lesson-count-info {
+    margin: 0;
+    font-size: 14px;
+    color: #666;
+}
+
+/* Available Lessons Styling */
+.available-lesson-item {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.available-lesson-item:hover {
+    background: #e3f2fd;
+    border-color: #0073aa;
+    transform: translateX(5px);
+}
+
+.available-lesson-item .lesson-title {
+    font-weight: 600;
+    color: #333;
+    margin: 0;
+}
+
+.available-lesson-item .lesson-meta {
+    font-size: 12px;
+    color: #666;
+    margin-top: 3px;
+}
+
+.available-lesson-item .add-icon {
+    color: #0073aa;
+    font-size: 16px;
+}
+
+/* Assigned Lessons Styling */
+.assigned-lesson-item {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    cursor: move;
+    transition: all 0.2s ease;
+}
+
+.assigned-lesson-item:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border-color: #0073aa;
+}
+
+.assigned-lesson-header {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #eee;
+    border-radius: 6px 6px 0 0;
+}
+
+.lesson-order-badge {
+    background: #0073aa;
+    color: #fff;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: bold;
+    min-width: 24px;
+    text-align: center;
+    margin-right: 12px;
+}
+
+.assigned-lesson-title {
+    flex-grow: 1;
+    font-weight: 600;
+    color: #333;
+    margin: 0;
+}
+
+.remove-lesson-btn {
+    background: #20c997;
+    color: #fff;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.remove-lesson-btn:hover {
+    background: #1ba085;
+}
+
+.assigned-lesson-content {
+    padding: 12px;
+    font-size: 13px;
+    color: #666;
+}
+
+/* Empty states */
+.no-lessons-available,
+.no-lessons-assigned {
+    text-align: center;
+    padding: 40px 20px;
+    color: #999;
+    font-style: italic;
+    background: #fff;
+    border: 2px dashed #ddd;
+    border-radius: 6px;
+}
+
+/* Sortable UI enhancements */
+.sortable-lessons .ui-sortable-helper {
+    transform: rotate(2deg);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+.sortable-lessons .ui-sortable-placeholder {
+    background: #e3f2fd;
+    border: 2px dashed #0073aa;
+    visibility: visible !important;
+    height: 60px;
+    margin-bottom: 8px;
+    border-radius: 6px;
+}
+
+/* Lesson Management Styles */
+.lessons-list {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background: #f9f9f9;
+    min-height: 200px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.lesson-item {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    margin-bottom: 10px;
+    cursor: move;
+    transition: all 0.2s ease;
+}
+
+.lesson-item:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border-color: #0073aa;
+}
+
+.lesson-item:last-child {
+    margin-bottom: 0;
+}
+
+.lesson-header {
+    display: flex;
+    align-items: center;
+    padding: 15px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #eee;
+    border-radius: 6px 6px 0 0;
+}
+
+.lesson-order {
+    background: #0073aa;
+    color: #fff;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: bold;
+    min-width: 24px;
+    text-align: center;
+    margin-right: 15px;
+}
+
+.lesson-item h4 {
+    margin: 0;
+    flex-grow: 1;
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+}
+
+.lesson-actions {
+    display: flex;
+    gap: 5px;
+}
+
+.lesson-actions .button {
+    padding: 4px 8px;
+    font-size: 12px;
+    height: auto;
+    line-height: 1.4;
+}
+
+.lesson-content {
+    padding: 15px;
+    color: #666;
+    font-size: 13px;
+}
+
+.lesson-content p {
+    margin: 5px 0;
+}
+
+.no-lessons {
+    text-align: center;
+    color: #999;
+    font-style: italic;
+    padding: 40px 20px;
+    background: #fff;
+    border: 2px dashed #ddd;
+    border-radius: 6px;
+}
+
+/* Sortable UI */
+.ui-sortable-helper {
+    transform: rotate(2deg);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+.ui-sortable-placeholder {
+    background: #e3f2fd;
+    border: 2px dashed #0073aa;
+    visibility: visible !important;
+    height: 60px;
+    margin-bottom: 10px;
+    border-radius: 6px;
+}
+
+/* Lesson Management Modal Specific */
+.clarity-modal-content.lesson-modal {
+    max-width: 1067px;
+    min-height: 500px;
+}
+
+/* Large modal for lesson management */
+.clarity-modal-large .clarity-modal-content {
+    max-width: 1067px;
+    width: 95%;
+}
+
+.lesson-modal .clarity-modal-body {
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+/* Add Lesson Form */
+.add-lesson-form .form-table {
+    margin-top: 0;
+}
+
+.add-lesson-form .form-table th {
+    width: 120px;
+}
+
+.add-lesson-form textarea {
+    width: 100%;
+    height: 100px;
+    resize: vertical;
+}
+
+.add-lesson-form input[type="url"] {
+    width: 100%;
+}
+
+/* Video Preview */
+.video-preview {
+    margin-top: 10px;
+    padding: 15px;
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+}
+
+.video-preview iframe {
+    width: 100%;
+    height: 200px;
+    border: none;
+    border-radius: 4px;
+}
+
+.video-preview .video-info {
+    margin-top: 10px;
+    font-size: 12px;
+    color: #666;
+}
+
+.video-type-badge {
+    display: inline-block;
+    padding: 2px 6px;
+    background: #0073aa;
+    color: #fff;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: bold;
+    text-transform: uppercase;
+    margin-left: 10px;
+}
+
+/* Form Validation States */
+.form-field-error {
+    border-color: #dc3232 !important;
+    box-shadow: 0 0 3px rgba(220, 50, 50, 0.5);
+}
+
+.field-error-message {
+    color: #dc3232;
+    font-size: 12px;
+    margin-top: 5px;
+    display: block;
+}
+
+/* Lesson Management Toolbar */
+.lesson-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+}
+
+.lesson-toolbar h4 {
+    margin: 0;
+    color: #495057;
+}
+
+.lesson-toolbar .button-primary {
+    margin-left: auto;
+}
+
+/* Drag and Drop Indicators */
+.lesson-item.ui-sortable-helper {
+    opacity: 0.8;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+.lesson-item .lesson-header:hover {
+    background: #e9ecef;
+    cursor: grab;
+}
+
+.lesson-item .lesson-header:active {
+    cursor: grabbing;
+}
+
+/* User Management Styles */
+.clarity-user-actions {
+    margin-bottom: 20px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.clarity-users-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.clarity-users-stats .stat-card {
+    background: #fff;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    text-align: center;
+}
+
+.clarity-users-stats .stat-number {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #0073aa;
+    margin-bottom: 0.5rem;
+}
+
+.clarity-users-stats .stat-label {
+    color: #666;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.access-badge {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.access-level-1 { background: #d4edda; color: #155724; }
+.access-level-2 { background: #fff3cd; color: #856404; }
+.access-level-3 { background: #f8d7da; color: #721c24; }
+
+.progress-display {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.progress-display .progress-bar {
+    flex: 1;
+    height: 8px;
+    background: #e9ecef;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-display .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #0073aa, #005a7c);
+    transition: width 0.3s ease;
+}
+
+.progress-display .progress-text {
+    font-size: 12px;
+    font-weight: 600;
+    color: #0073aa;
+    min-width: 35px;
+}
+
+.loading-row {
+    text-align: center;
+    color: #666;
+    font-style: italic;
+}
+
+.no-students {
+    text-align: center;
+    color: #666;
+    font-style: italic;
+    padding: 2rem;
+}
+
+/* Testing Tools Styles */
+.clarity-testing-controls {
+    background: #f8f9fa;
+    padding: 20px;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    margin-bottom: 30px;
+}
+
+.testing-actions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1rem;
+}
+
+.testing-action-card {
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 1.5rem;
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+}
+
+.action-icon {
+    background: #0073aa;
+    color: #fff;
+    width: 50px;
+    height: 50px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.action-content h4 {
+    margin: 0 0 0.5rem 0;
+    color: #333;
+}
+
+.action-content p {
+    margin: 0 0 1rem 0;
+    color: #666;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.action-content .button {
+    margin-top: 0.5rem;
+}
+
+.action-content .regular-text {
+    width: 100%;
+    margin-bottom: 0.5rem;
+}
+
+/* Testing Scenarios */
+.clarity-testing-scenarios {
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 1.5rem;
+}
+
+.scenario-list {
+    display: grid;
+    gap: 1rem;
+}
+
+.scenario-item {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border-left: 4px solid #0073aa;
+}
+
+.scenario-number {
+    background: #0073aa;
+    color: #fff;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    flex-shrink: 0;
+}
+
+.scenario-content h4 {
+    margin: 0 0 0.5rem 0;
+    color: #333;
+}
+
+.scenario-content p {
+    margin: 0 0 1rem 0;
+    color: #666;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.scenario-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+/* User Registration/Login Form Enhancements */
+.clarity-registration-container,
+.clarity-login-container {
+    max-width: 600px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+}
+
+/* Student Dashboard Enhancements */
+.student-dashboard-wrapper {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+}
+
+/* Frontend Script Localization */
+.clarity-frontend-scripts {
+    display: none;
+}
+
+/* Enhanced Responsive Design for User Management */
+@media (max-width: 768px) {
+    .clarity-analytics-charts {
+        grid-template-columns: 1fr;
+    }
+    
+    .clarity-course-actions,
+    .clarity-user-actions {
+        flex-direction: column;
+    }
+    
+    .clarity-control-actions {
+        flex-direction: column;
+    }
+    
+    .clarity-modal-content {
+        width: 95%;
+        margin: 20px;
+    }
+    
+    .lesson-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+    
+    .lesson-actions {
+        justify-content: center;
+    }
+    
+    .lesson-toolbar {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+    }
+    
+    .lesson-toolbar .button-primary {
+        margin-left: 0;
+        width: 100%;
+    }
+    
+    .clarity-users-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .testing-actions-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .testing-action-card {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .scenario-item {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .progress-display {
+        flex-direction: column;
+        gap: 5px;
+    }
+}
+
+/* Custom Icon Dropdown Styles */
+.icon-selector-wrapper {
+    position: relative;
+    width: 300px;
+}
+
+.icon-dropdown {
+    position: relative;
+    width: 100%;
+}
+
+.icon-dropdown-selected {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: #fff;
+    cursor: pointer;
+    min-height: 40px;
+    gap: 8px;
+}
+
+.icon-dropdown-selected:hover {
+    border-color: #0073aa;
+}
+
+.icon-dropdown-selected i {
+    font-size: 18px;
+    width: 20px;
+    text-align: center;
+}
+
+.icon-dropdown-selected .selected-text {
+    flex: 1;
+}
+
+.icon-dropdown-selected .dropdown-arrow {
+    font-size: 12px;
+    transition: transform 0.2s;
+}
+
+.icon-dropdown.open .dropdown-arrow {
+    transform: rotate(180deg);
+}
+
+.icon-dropdown-options {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-top: none;
+    border-radius: 0 0 4px 4px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.icon-option-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    cursor: pointer;
+    gap: 8px;
+    transition: background-color 0.1s;
+}
+
+.icon-option-item:hover {
+    background-color: #f5f5f5;
+}
+
+.icon-option-item i {
+    font-size: 16px;
+    width: 20px;
+    text-align: center;
+    color: #333;
+}
+
+.icon-option-item span {
+    flex: 1;
+}

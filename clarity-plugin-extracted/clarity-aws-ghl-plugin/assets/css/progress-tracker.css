@@ -1,0 +1,605 @@
+/**
+ * Progress Tracker Frontend Styles
+ *
+ * Styles for user dashboard and progress tracking components
+ *
+ * @package Clarity_AWS_GHL
+ */
+
+/* User Dashboard */
+.clarity-user-dashboard {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.dashboard-header {
+    margin-bottom: 40px;
+    text-align: center;
+}
+
+.dashboard-header h2 {
+    color: #333;
+    margin-bottom: 20px;
+    font-size: 28px;
+    font-weight: 600;
+}
+
+.dashboard-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-top: 30px;
+}
+
+.stat-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 25px;
+    border-radius: 12px;
+    text-align: center;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.stat-number {
+    display: block;
+    font-size: 32px;
+    font-weight: bold;
+    margin-bottom: 8px;
+    line-height: 1;
+}
+
+.stat-label {
+    font-size: 14px;
+    opacity: 0.9;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Dashboard Sections */
+.dashboard-section {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    margin-bottom: 30px;
+    overflow: hidden;
+}
+
+.dashboard-section h3 {
+    background: #f8f9fa;
+    margin: 0;
+    padding: 20px 25px;
+    font-size: 20px;
+    font-weight: 600;
+    color: #333;
+    border-bottom: 1px solid #e9ecef;
+}
+
+/* Course Progress List */
+.course-progress-list {
+    padding: 25px;
+}
+
+.course-progress-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    transition: background 0.3s ease;
+}
+
+.course-progress-item:hover {
+    background: #e9ecef;
+}
+
+.course-progress-item:last-child {
+    margin-bottom: 0;
+}
+
+.course-info {
+    flex: 1;
+}
+
+.course-info h4 {
+    margin: 0 0 10px 0;
+    color: #333;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.progress-bar {
+    width: 100%;
+    max-width: 300px;
+    height: 8px;
+    background: #e9ecef;
+    border-radius: 20px;
+    overflow: hidden;
+    margin: 10px 0;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #28a745, #20c997);
+    border-radius: 20px;
+    transition: width 0.6s ease;
+}
+
+.progress-text {
+    font-size: 14px;
+    color: #666;
+    font-weight: 500;
+}
+
+.course-actions {
+    margin-left: 20px;
+}
+
+/* Activity List */
+.activity-list {
+    padding: 25px;
+}
+
+.activity-item {
+    display: flex;
+    align-items: flex-start;
+    padding: 15px 0;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.activity-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.activity-icon {
+    width: 40px;
+    height: 40px;
+    background: #e3f2fd;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 15px;
+    flex-shrink: 0;
+}
+
+.activity-icon .dashicons {
+    color: #2196f3;
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+}
+
+.activity-content {
+    flex: 1;
+}
+
+.activity-content p {
+    margin: 0 0 5px 0;
+    color: #333;
+    font-weight: 500;
+}
+
+.activity-time {
+    font-size: 12px;
+    color: #999;
+}
+
+/* Course Progress Component */
+.clarity-course-progress {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    margin-bottom: 30px;
+}
+
+.course-progress-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 30px;
+    text-align: center;
+}
+
+.course-progress-header h3 {
+    margin: 0 0 20px 0;
+    font-size: 24px;
+    font-weight: 600;
+}
+
+.overall-progress {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 30px;
+}
+
+/* Circular Progress */
+.progress-circle {
+    width: 120px;
+    height: 120px;
+}
+
+.circular-chart {
+    display: block;
+    margin: 0 auto;
+    max-width: 100%;
+    max-height: 100%;
+}
+
+.circle-bg {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.2);
+    stroke-width: 2.8;
+}
+
+.circle {
+    fill: none;
+    stroke: white;
+    stroke-width: 2.8;
+    stroke-linecap: round;
+    animation: progress 1s ease-out forwards;
+}
+
+.percentage {
+    fill: white;
+    font-family: sans-serif;
+    font-size: 0.5em;
+    text-anchor: middle;
+    font-weight: bold;
+}
+
+@keyframes progress {
+    0% {
+        stroke-dasharray: 0 100;
+    }
+}
+
+.progress-stats p {
+    margin: 0;
+    font-size: 16px;
+    opacity: 0.9;
+}
+
+/* Lessons List */
+.lessons-list {
+    padding: 25px;
+}
+
+.lesson-item {
+    display: flex;
+    align-items: center;
+    padding: 20px;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    transition: all 0.3s ease;
+}
+
+.lesson-item:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.lesson-item.completed {
+    background: #f8fff8;
+    border-color: #28a745;
+}
+
+.lesson-item.locked {
+    opacity: 0.6;
+    background: #f8f9fa;
+}
+
+.lesson-item:last-child {
+    margin-bottom: 0;
+}
+
+.lesson-status {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 20px;
+    flex-shrink: 0;
+}
+
+.lesson-item.completed .lesson-status {
+    background: #28a745;
+    color: white;
+}
+
+.lesson-item.accessible .lesson-status {
+    background: #007cba;
+    color: white;
+    font-weight: bold;
+}
+
+.lesson-item.locked .lesson-status {
+    background: #6c757d;
+    color: white;
+}
+
+.lesson-status .dashicons {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+}
+
+.lesson-content {
+    flex: 1;
+}
+
+.lesson-content h4 {
+    margin: 0 0 5px 0;
+    color: #333;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.lesson-duration,
+.completion-date {
+    display: inline-block;
+    font-size: 12px;
+    color: #666;
+    margin-right: 15px;
+}
+
+.lesson-actions {
+    margin-left: 20px;
+}
+
+/* Lesson Navigation */
+.clarity-lesson-navigation {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    margin: 30px 0;
+    overflow: hidden;
+}
+
+.lesson-nav-header {
+    background: #f8f9fa;
+    padding: 20px 25px;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.lesson-progress-indicator {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.lesson-progress-indicator span {
+    font-weight: 600;
+    color: #333;
+    min-width: 120px;
+}
+
+.lesson-nav-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 25px;
+    gap: 20px;
+}
+
+.nav-button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.nav-button.disabled {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.nav-button .dashicons {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+}
+
+.lesson-center-actions {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.complete-lesson {
+    padding: 12px 24px;
+    font-size: 16px;
+    font-weight: 600;
+    border-radius: 6px;
+}
+
+.lesson-completed-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #28a745;
+    font-weight: 600;
+}
+
+.lesson-completed-indicator .dashicons {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+}
+
+.course-completed {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.completion-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #ffc107;
+    font-weight: 600;
+    font-size: 16px;
+}
+
+.completion-badge .dashicons {
+    font-size: 24px;
+    width: 24px;
+    height: 24px;
+}
+
+.certificate-download {
+    background: #28a745;
+    color: white;
+    border-color: #28a745;
+}
+
+.certificate-download:hover {
+    background: #218838;
+    border-color: #218838;
+    color: white;
+}
+
+/* Loading States */
+.clarity-loading {
+    opacity: 0.6;
+    pointer-events: none;
+    position: relative;
+}
+
+.clarity-loading::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #007cba;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Button Styles */
+.button {
+    background: #007cba;
+    border-color: #007cba;
+    color: white;
+    padding: 10px 16px;
+    border-radius: 4px;
+    text-decoration: none;
+    display: inline-block;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid;
+    font-size: 14px;
+    line-height: 1.4;
+    transition: all 0.3s ease;
+}
+
+.button:hover {
+    background: #005a87;
+    border-color: #005a87;
+    color: white;
+}
+
+.button-primary {
+    background: #007cba;
+    border-color: #007cba;
+}
+
+.button-primary:hover {
+    background: #005a87;
+    border-color: #005a87;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .dashboard-stats {
+        grid-template-columns: 1fr;
+    }
+    
+    .course-progress-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+    
+    .course-actions {
+        margin-left: 0;
+        width: 100%;
+    }
+    
+    .overall-progress {
+        flex-direction: column;
+        gap: 20px;
+    }
+    
+    .lesson-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+    
+    .lesson-actions {
+        margin-left: 0;
+        width: 100%;
+    }
+    
+    .lesson-nav-actions {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .nav-button {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .course-completed {
+        flex-direction: column;
+        text-align: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .clarity-user-dashboard {
+        padding: 15px;
+    }
+    
+    .dashboard-section {
+        margin-bottom: 20px;
+    }
+    
+    .lessons-list,
+    .course-progress-list,
+    .activity-list {
+        padding: 15px;
+    }
+    
+    .lesson-nav-actions {
+        padding: 20px 15px;
+    }
+}
